@@ -1,0 +1,318 @@
+{
+  "name": "SRNE ASF Hybrid three-phase (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Power",
+      "address": 266,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l1_power",
+      "label": "Load L1 Power",
+      "address": 539,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l2_power",
+      "label": "Load L2 Power",
+      "address": 562,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l3_power",
+      "label": "Load L3 Power",
+      "address": 563,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power_v",
+      "label": "Battery Power Voltage",
+      "address": 257,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_power_i",
+      "label": "Battery Power Current",
+      "address": 258,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 256,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 263,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 264,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 271,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 272,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 531,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 532,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 554,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 568,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 555,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 569,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 533,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "unit": "W",
+      "sum_of": [
+        "load_l1_power",
+        "load_l2_power",
+        "load_l3_power"
+      ]
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "unit": "W",
+      "product_of": [
+        "battery_power_v",
+        "battery_power_i"
+      ]
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "unit": "V",
+      "sum_of": [
+        "battery_power_v"
+      ]
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "unit": "A",
+      "sum_of": [
+        "battery_power_i"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "Fault code",
+      "registers": [
+        516,
+        517,
+        518,
+        519
+      ],
+      "function_code": 3,
+      "kind": "codes",
+      "severity": "fault",
+      "names": {
+        "1": "BatVoltLow",
+        "2": "BatOverCurrSw",
+        "3": "BatOpen",
+        "4": "BatLowEod",
+        "5": "BatOverCurrHw",
+        "6": "BatOverVolt",
+        "7": "BusOverVoltHw",
+        "8": "BusOverVoltSw",
+        "9": "PvVoltHigh",
+        "10": "PvBoostOCSw",
+        "11": "PvBoostOCHw",
+        "12": "SpiCommErr",
+        "13": "OverloadBypass",
+        "14": "OverloadInverter",
+        "15": "AcOverCurrHw",
+        "16": "AuxDSpReqOffPWM",
+        "17": "InvShort",
+        "18": "Bussoftfailed",
+        "19": "OverTemperMppt",
+        "20": "OverTemperInv",
+        "21": "FanFail",
+        "22": "EEPROM",
+        "23": "ModelNumErr",
+        "24": "Busdiff",
+        "25": "BusShort",
+        "26": "Rlyshort",
+        "28": "LinePhaseErr",
+        "29": "BusVoltLow",
+        "30": "BatCapacityLow1",
+        "31": "BatCapacityLow2",
+        "32": "BatCapacityLowStop",
+        "58": "BMSComErr",
+        "60": "BMSUnderTem",
+        "61": "BMSOverTem",
+        "62": "BMSOverCur",
+        "63": "BMSUnderVolt",
+        "64": "BMSOverVolt"
+      },
+      "severities": {
+        "10": "alarm",
+        "11": "alarm",
+        "19": "alarm",
+        "31": "alarm",
+        "58": "alarm",
+        "60": "alarm",
+        "61": "alarm",
+        "62": "alarm",
+        "63": "alarm",
+        "64": "alarm"
+      },
+      "codes": {
+        "1": "01",
+        "2": "02",
+        "3": "03",
+        "4": "04",
+        "5": "05",
+        "6": "06",
+        "7": "07",
+        "8": "08",
+        "9": "09",
+        "10": "10",
+        "11": "11",
+        "12": "12",
+        "13": "13",
+        "14": "14",
+        "15": "15",
+        "16": "16",
+        "17": "17",
+        "18": "18",
+        "19": "19",
+        "20": "20",
+        "21": "21",
+        "22": "22",
+        "23": "23",
+        "24": "24",
+        "25": "25",
+        "26": "26",
+        "28": "28",
+        "29": "29",
+        "30": "30",
+        "31": "31",
+        "32": "32",
+        "58": "58",
+        "60": "60",
+        "61": "61",
+        "62": "62",
+        "63": "63",
+        "64": "64"
+      }
+    }
+  ]
+}

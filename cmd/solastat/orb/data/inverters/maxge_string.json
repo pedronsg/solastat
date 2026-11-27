@@ -1,0 +1,87 @@
+{
+  "name": "MAXGE (RETELEC) String (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Power",
+      "address": 268,
+      "function_code": 4,
+      "value_type": "U_DWORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 518,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 519,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 525,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 526,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 264,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 258,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 267,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ]
+}

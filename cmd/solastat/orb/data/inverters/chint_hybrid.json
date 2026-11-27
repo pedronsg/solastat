@@ -1,0 +1,317 @@
+{
+  "name": "CHINT CPS SCE-TL Hybrid (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Power",
+      "address": 4168,
+      "function_code": 3,
+      "value_type": "U_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "address": 4151,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "load_l1_power",
+      "label": "Load L1 Power",
+      "address": 4874,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "load_l2_power",
+      "label": "Load L2 Power",
+      "address": 4876,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "load_l3_power",
+      "label": "Load L3 Power",
+      "address": 4878,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 8201,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 8192,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 4112,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 4113,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 4116,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 4117,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 4890,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 4893,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 4891,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 4895,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 4892,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 4897,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 8198,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 8199,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 4920,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "unit": "W",
+      "sum_of": [
+        "load_l1_power",
+        "load_l2_power",
+        "load_l3_power"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "Inverter fault 1",
+      "registers": [
+        4126
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Inverter over dc-bias current",
+        "1": "Inverter relay abnormal",
+        "2": "Remote off",
+        "3": "Inverter over temperature",
+        "4": "GFCI abnormal",
+        "5": "PV string reverse",
+        "6": "System type error",
+        "7": "Fan abnormal",
+        "8": "Unbalance Dc-link voltage",
+        "9": "Dc-link over voltage",
+        "10": "Internal communication error",
+        "11": "Software incompatibility",
+        "12": "Internal storage error",
+        "13": "Data inconsistency",
+        "14": "Inverter abnormal",
+        "15": "Boost abnormal"
+      }
+    },
+    {
+      "group": "Inverter fault 2",
+      "registers": [
+        4127
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Grid over voltage",
+        "1": "Grid under voltage",
+        "2": "Grid absent",
+        "3": "Grid over frequency",
+        "4": "Grid under frequency",
+        "5": "PV over voltage",
+        "6": "PV insulation abnormal",
+        "7": "Leakage current abnormal",
+        "8": "Inverter in power limit state",
+        "9": "Internal power supply abnormal",
+        "10": "PV string abnormal",
+        "11": "PV under voltage",
+        "12": "PV Irradiation weak",
+        "13": "Grid abnormal",
+        "14": "Arc fault detection",
+        "15": "Grid over mean voltage"
+      }
+    },
+    {
+      "group": "Inverter fault 3",
+      "registers": [
+        4128
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Reserved",
+        "1": "Logger/E-display EEPROM fail",
+        "2": "Arc fault detection",
+        "3": "Single tracker detect warning(PID device abnormal)",
+        "4": "AFCI lost",
+        "5": "Data logger loste",
+        "6": "Meter lost",
+        "7": "Inverter lost",
+        "8": "Grid N abnormal",
+        "9": "Surge Protection Devices (SPD) defective",
+        "10": "Parallel ID warning",
+        "11": "Parallel SYN signal warning",
+        "12": "Parallel BAT abnormal",
+        "13": "Parallel GRID abnormal",
+        "14": "GEN voltage abnormal",
+        "15": "Reserved"
+      }
+    },
+    {
+      "group": "Battery fault",
+      "registers": [
+        8211
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Battery Absent",
+        "1": "Battery over voltage",
+        "2": "Battery under voltage",
+        "3": "Battery discharge over current",
+        "4": "Battery over temperature",
+        "5": "Battery under temperature",
+        "6": "Neutral live wire reversed",
+        "7": "Back up output voltage abnormal",
+        "8": "Communication eror (inverter-BMS)",
+        "9": "Internal communication loss(E-M)",
+        "10": "Internal communication loss(M-D)",
+        "11": "DCDC abnormal",
+        "12": "Backup over dc-bias voltage",
+        "13": "Backup short circuit",
+        "14": "Backup over load",
+        "15": "Reserved"
+      }
+    }
+  ]
+}

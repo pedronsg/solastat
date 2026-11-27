@@ -1,0 +1,216 @@
+{
+  "name": "Hinen Hybrid single-phase (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "run_state",
+      "label": "Run State",
+      "address": 0,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv_total_power",
+      "label": "PV Power",
+      "address": 339,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "address": 76,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_discharge_power",
+      "label": "Battery Discharge Power",
+      "address": 102,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_charge_power",
+      "label": "Battery Charge Power",
+      "address": 104,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv_power_neg",
+      "label": "PV Power (negated)",
+      "address": 339,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": -0.1
+    },
+    {
+      "name": "battery_discharge_power_neg",
+      "label": "Battery Discharge Power (negated)",
+      "address": 102,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": -0.1
+    },
+    {
+      "name": "battery_charge_power_neg",
+      "label": "Battery Charge Power (negated)",
+      "address": 104,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": -0.1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 128,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery SOH",
+      "address": 174,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 3,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 4,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 8,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 9,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 29,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 30,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 127,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 56,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "unit": "W",
+      "sum_of": [
+        "battery_discharge_power",
+        "battery_charge_power_neg"
+      ]
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "unit": "W",
+      "sum_of": [
+        "total_consumption_power",
+        "pv_power_neg",
+        "battery_discharge_power_neg",
+        "battery_charge_power"
+      ]
+    }
+  ],
+  "fault_state": {
+    "reading": "run_state",
+    "values": [
+      3
+    ]
+  },
+  "faults": [
+    {
+      "group": "Fault main code",
+      "registers": [
+        147
+      ],
+      "function_code": 4,
+      "kind": "code",
+      "severity": "fault"
+    }
+  ]
+}

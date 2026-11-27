@@ -1,0 +1,162 @@
+{
+  "name": "TSUN TSOL-MS Microinverter (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 12306,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 12309,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "inverter_ac_power",
+      "label": "AC Output Power",
+      "address": 12303,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 12304,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 12305,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 12307,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 12308,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 12297,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 12298,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 12299,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "Inverter alarm",
+      "registers": [
+        12291
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "0": "HBridgeFault",
+        "1": "DriVoltageFault",
+        "2": "GFDI-Fault",
+        "3": "OverTemp",
+        "4": "CommLose",
+        "7": "EEPROM-Fault",
+        "8": "NoUtility",
+        "9": "VG_Offset",
+        "10": "Relais_Open",
+        "11": "Relais_Short",
+        "12": "GridVoltOverRating",
+        "13": "GridVoltUnderRating",
+        "14": "GridFreqOverRating",
+        "15": "GridFreqUnderRating"
+      }
+    },
+    {
+      "group": "Inverter fault",
+      "registers": [
+        12292
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "PVOV-Fault (PV OverVolt)",
+        "1": "PVLV-Fault (PV LowVolt)",
+        "2": "PV OI-Fault (PV OverCurrent)",
+        "3": "PV OFV-Fault",
+        "4": "DC ShortCircuitFault"
+      },
+      "severities": {
+        "1": "alarm"
+      }
+    }
+  ]
+}

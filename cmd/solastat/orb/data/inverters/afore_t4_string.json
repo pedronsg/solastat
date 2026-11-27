@@ -1,0 +1,257 @@
+{
+  "name": "Afore BNT-TL T4 String (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Power 1 Voltage",
+      "address": 7,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Power 1 Current",
+      "address": 8,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Power 1 Voltage",
+      "address": 9,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Power 1 Current",
+      "address": 10,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_v",
+      "label": "PV3 Power 1 Voltage",
+      "address": 11,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_i",
+      "label": "PV3 Power 1 Current",
+      "address": 12,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "inverter_ac_power",
+      "label": "AC Output Power",
+      "address": 18,
+      "function_code": 4,
+      "value_type": "U_DWORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 1,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 4,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 2,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 5,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 3,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 6,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 13,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.1
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "unit": "W",
+      "product_of": [
+        "pv1_total_power_p_v",
+        "pv1_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "unit": "W",
+      "product_of": [
+        "pv2_total_power_p_v",
+        "pv2_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv3_total_power",
+      "label": "PV3 Power",
+      "unit": "W",
+      "product_of": [
+        "pv3_total_power_p_v",
+        "pv3_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power",
+        "pv3_total_power"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "Device fault",
+      "registers": [
+        24
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "IntFaultE",
+        "1": "IntFaultD",
+        "2": "IntFaultC",
+        "3": "IntFaultB",
+        "4": "IntFaultA",
+        "5": "IntFaultN",
+        "8": "IntFaultM",
+        "9": "IntFaultL",
+        "10": "IntFaultK",
+        "11": "IntFaultJ",
+        "14": "IntFaultG"
+      }
+    },
+    {
+      "group": "Device alarm",
+      "registers": [
+        26,
+        27,
+        28,
+        25
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "0": "IntProtectN",
+        "1": "GridV.OutLim",
+        "2": "EmergencyStp",
+        "3": "IntProtectM",
+        "4": "IntProtectL",
+        "5": "Ac.ConErr",
+        "6": "IntProtectK",
+        "7": "IntProtectJ",
+        "8": "IntProtectS",
+        "9": "IntProtectR",
+        "10": "IntProtectQ",
+        "11": "IsolationErr",
+        "12": "GFCI.Err",
+        "13": "IntProtectP",
+        "14": "PV.Reverse",
+        "15": "IntProtectO",
+        "16": "GridV.OutLim",
+        "17": "IntProtectC",
+        "18": "GridF.OutLim",
+        "19": "GridF.OutLim",
+        "20": "GridV.OutLim",
+        "21": "IntProtectB",
+        "22": "TempOver",
+        "23": "IntProtectA",
+        "24": "IntProtectl",
+        "25": "IntProtectH",
+        "26": "IntProtectG",
+        "27": "IntProtectF",
+        "28": "IntProtectE",
+        "29": "PVVoltOver",
+        "30": "IntProtectD",
+        "39": "ExtFanErr",
+        "40": "IntFanErr",
+        "41": "SPICommErr",
+        "42": "EepromErr",
+        "43": "PVBrkerOpen",
+        "44": "TempSensorErr",
+        "54": "IntProtectT",
+        "55": "IntProtectU"
+      }
+    }
+  ]
+}

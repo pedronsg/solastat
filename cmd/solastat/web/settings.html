@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolaStat · Settings</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script>
+    // Show the page once, already translated and filled in, instead of
+    // letting it visibly re-render: the markup starts in English with some
+    // sections collapsed, and translations plus every card's data arrive a
+    // moment later. The body stays transparent until the first round of API
+    // requests has settled (tracked by wrapping fetch), capped at 1.5 s so a
+    // slow or unreachable API never leaves the page blank.
+    (function () {
+      var root = document.documentElement;
+      root.classList.add('booting');
+      var origFetch = window.fetch, pending = 0, parsed = false, shown = false;
+      function show() {
+        if (shown) return;
+        shown = true;
+        window.fetch = origFetch;
+        root.classList.remove('booting');
+      }
+      function check() {
+        if (parsed && pending === 0) requestAnimationFrame(function () { requestAnimationFrame(show); });
+      }
+      window.fetch = function () {
+        if (shown) return origFetch.apply(this, arguments);
+        pending++;
+        return origFetch.apply(this, arguments).finally(function () { pending--; setTimeout(check, 0); });
+      };
+      document.addEventListener('DOMContentLoaded', function () { parsed = true; setTimeout(check, 0); });
+      setTimeout(show, 1500);
+    })();
+  </script>
+  <style>
+    html.booting body { opacity: 0; }
+    body { transition: opacity .15s ease; }
+    :root {
+      /* Palette of solastat.com: black stage, neutral near-black cards and greys,
+         energy colours unchanged, the sun gradient as the one accent. */
+      --bg:          #0b1120;
+      --card:        #111113;
+      --border:      #26262b;
+      --field:       #0a0a0b;
+      --accent:      #f59e0b;
+      --accent-grad: linear-gradient(100deg, #fde047 0%, #f59e0b 45%, #f97316 100%);
+      --accent-ink:  #1a1206;
+      --text:   #f5f5f7;
+      --muted:  #a1a1aa;
+      --solar:  #f59e0b;
+      --grid:   #818cf8;
+      --ok:     #34d399;
+      --danger: #f87171;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      /* Night-blue with a soft blue glow, like the "Every watt. Live."
+         section of solastat.com. Fixed, so it doesn't scroll with the page. */
+      background:
+        radial-gradient(90% 55% at 50% 0%, rgba(96, 165, 250, 0.16), transparent 70%),
+        radial-gradient(80% 50% at 50% 100%, rgba(129, 140, 248, 0.22), transparent 70%),
+        var(--bg);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 0.75rem;
+      /* One centred column, like the other Orbit OS apps (Sprinqua): on a
+         desktop the page no longer stretches across the whole screen. */
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+    @media (min-width: 640px) { body { padding: 1.25rem 1.5rem; } }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    header h1 { font-size: 1.05rem; font-weight: 700; }
+    .back {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 0.45rem;
+      padding: 0.3rem 0.75rem;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .back:hover { color: var(--text); border-color: var(--muted); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 0.85rem;
+    }
+    /* Shown after a card's name, e.g. the inverter profile: "INVERTER · Deye". */
+    .card-title-detail { text-transform: none; letter-spacing: normal; color: var(--text); }
+    .card-title-detail:not(:empty)::before { content: " · "; color: var(--muted); }
+    /* A card closes and opens from its title: the whole row, out to the
+       card's edges (a finger's height on a phone), the arrow on the right.
+       Closed, only the title is left. No height animation: it stutters on
+       slower phones. */
+    .card.collapsible > .card-title {
+      display: flex;
+      align-items: center;
+      margin: -1rem -1.1rem 0.35rem;
+      padding: 1rem 1.1rem 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      border-radius: 0.875rem;
+    }
+    .card.collapsible > .card-title::after {
+      content: "";
+      flex: none;
+      width: 0.4rem;
+      height: 0.4rem;
+      margin: 0 0.15rem 0 auto;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translate(-0.1rem, -0.1rem);
+      transition: transform .15s;
+    }
+    .card.collapsible > .card-title:hover { color: var(--text); }
+    .card.collapsible > .card-title:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .card.collapsed > .card-title { margin-bottom: -1rem; padding-bottom: 1rem; }
+    .card.collapsed > .card-title::after { transform: rotate(-45deg); }
+    .card.collapsed > :not(.card-title) { display: none !important; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+      font-size: 0.82rem;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .dot.on  { background: var(--ok);     box-shadow: 0 0 6px var(--ok); }
+    .dot.err { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.72rem; color: var(--muted); }
+    input[type="text"], input[type="number"], input[type="password"], select {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.45rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 0.42rem 0.7rem;
+      transition: border-color 0.15s;
+      width: 100%;
+      cursor: pointer;
+    }
+    input[type="text"], input[type="number"], input[type="password"] { cursor: text; }
+    /* Date fields: typed as DD/MM/YYYY, with a button opening the browser's
+       own calendar (a hidden native date input) that fills them in. */
+    .date-field { position: relative; display: flex; gap: 0.45rem; }
+    .date-field input[type="text"] { flex: 1; min-width: 0; }
+    .date-field .date-pick { flex: none; padding: 0 0.6rem; display: inline-flex; align-items: center; }
+    .date-native { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; color-scheme: dark; }
+    .section-label { font-size: 0.8rem; font-weight: 600; color: var(--text); margin: 0 0 0.6rem; }
+    .section-label.section-gap { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .btn-pair { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+    input:focus, select:focus { outline: none; border-color: var(--grid); }
+
+    /* Settings-style rows: label on the left, control on the right. */
+    .toggle-row {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    .toggle {
+      position: relative;
+      width: 36px; height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: var(--ok); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.9rem; font-weight: 500; }
+
+    /* A grouped list: one option per row, separated by hairlines. */
+    /* Save/result messages under a card's buttons: small, right-aligned
+       under the button, and taking no space while empty. */
+    #mqtt-msg { margin-top: 0.5rem; font-size: 0.78rem; text-align: right; color: var(--muted); }
+    #mqtt-msg:empty { display: none; }
+    .setting-list {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.7rem;
+      padding: 0 0.85rem;
+    }
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.72rem 0;
+      border-top: 1px solid var(--border);
+    }
+    .setting-list > .check-row:first-child { border-top: 0; }
+    /* About card: label on the left, value or link on the right. */
+    .about-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.72rem 0; border-top: 1px solid var(--border); font-size: 0.86rem;
+    }
+    .setting-list > .about-row:first-child { border-top: 0; }
+    .about-row span:last-child { color: var(--muted); }
+    .ext-link { color: var(--accent); text-decoration: none; font-size: 0.86rem; }
+    .ext-link:hover { text-decoration: underline; }
+    .ext-link::after { content: " ↗"; }
+    .check-row label { order: 1; flex: 1; font-size: 0.86rem; color: var(--text); cursor: pointer; }
+    .check-row input[type="number"] {
+      order: 2;
+      width: 4.2rem;
+      padding: 0.3rem 0.5rem;
+      text-align: right;
+    }
+    .check-row .unit { order: 3; font-size: 0.8rem; color: var(--muted); }
+    .check-row input[type="checkbox"] {
+      order: 4;
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    /* button.primary / .secondary / .danger: the shared style, in nav.js. */
+
+    /* ── Save/action feedback ────────────────────────────────
+       One shared pill-style status used after every Save/Activate button
+       on this page (and, identically, on every plugin's own settings
+       page) — see setSaveMsg. .busy is the neutral in-flight state;
+       .ok/.err color and tint it once the request resolves. */
+    .save-msg {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.6rem;
+      min-height: 1.6em;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      opacity: 0;
+      transform: translateY(-2px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .save-msg.visible { opacity: 1; transform: translateY(0); }
+    .save-msg.busy {
+      color: var(--muted);
+      background: color-mix(in srgb, var(--muted) 14%, transparent);
+      border-color: color-mix(in srgb, var(--muted) 30%, transparent);
+    }
+    .save-msg.ok {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 16%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 38%, transparent);
+    }
+    .save-msg.err {
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 16%, transparent);
+      border-color: color-mix(in srgb, var(--danger) 38%, transparent);
+    }
+    /* ── Confirmation dialog ─────────────────────────────── */
+    .modal {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem; background: rgba(0, 0, 0, 0.6);
+    }
+    .modal[hidden] { display: none; }
+    .modal-box {
+      width: 100%; max-width: 440px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 0.8rem;
+      padding: 1.25rem 1.3rem 1.1rem; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.7rem; }
+    .modal-body { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+    .modal-body ul { margin: 0.35rem 0 0.7rem 1.1rem; padding: 0; color: var(--text); }
+    .modal-body p { margin: 0 0 0.6rem; }
+    .modal-body .warn { color: var(--danger); font-weight: 600; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+    .save-msg.ok::before  { content: "✓"; }
+    .save-msg.err::before { content: "✕"; }
+
+    /* ── Sticky save bar ─────────────────────────────────────
+       Same as Price Shift's: appears once MQTT or Notifications has an
+       unsaved edit, and saves both cards together. */
+    body { padding-bottom: 5rem; }
+    .savebar {
+      position: fixed; left: 50%; bottom: 0.75rem; transform: translateX(-50%);
+      width: min(42rem - 1.5rem, calc(100vw - 1.5rem)); z-index: 200;
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      background: rgba(17, 17, 19, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 0.9rem; padding: 0.6rem 0.7rem 0.6rem 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    .savebar[hidden] { display: none; }
+    .savebar .txt { flex: 1 1 10rem; font-size: 0.85rem; }
+    .savebar .txt.err { color: var(--danger); }
+    .savebar .txt.ok { color: var(--ok); }
+    input.invalid { border-color: var(--danger); }
+
+    .hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.55rem;
+      line-height: 1.5;
+    }
+    code {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.3rem;
+      padding: 0.1em 0.35em;
+      font-size: 0.85em;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* ── Plugins ──────────────────────────────────────────── */
+    /* Active plugins: same grouped list as the notification options. */
+    #plugin-list:not(:empty) {
+      margin-top: 1rem;
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.7rem;
+      padding: 0 0.85rem;
+    }
+    #plugin-list { font-size: 0.8rem; color: var(--muted); line-height: 2.4; }
+    /* Name and version on the left; the badge (and Remove) on the right,
+       centred on both lines. */
+    .plugin-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.75rem 0;
+      border-top: 1px solid var(--border);
+      color: var(--text);
+      line-height: normal;
+    }
+    .plugin-row:first-child { border-top: 0; }
+    /* Only the list (a certified board's): right under the card's title. */
+    #plugin-list.included { margin-top: 0; }
+    /* A field with its button attached on the right (copy, activate). */
+    .input-group { display: flex; gap: 0.45rem; align-items: stretch; }
+    .input-group input { flex: 1; min-width: 0; }
+    .input-group button { flex: none; }
+    /* Setup actions: explanation on the left, button on the right. */
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.8rem 0;
+      border-top: 1px solid var(--border);
+    }
+    .action-row:first-child { border-top: 0; }
+    .action-row .hint { margin: 0; }
+    .action-row button { flex: none; }
+    @media (max-width: 500px) {
+      .action-row { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+    }
+    .plugin-actions { display: flex; align-items: center; gap: 0.4rem; flex: none; }
+    .plugin-name { font-weight: 600; font-size: 0.88rem; }
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge.ok    { background: rgba(52,211,153,0.15);  color: var(--ok); }
+    .badge.warn  { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+
+    /* ── Light theme: the colours not taken from the variables ── */
+    [data-theme="light"] .modal { background: rgba(0, 0, 0, 0.35); }
+    [data-theme="light"] .modal-box { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18); }
+    [data-theme="light"] .savebar { background: rgba(255, 255, 255, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); }
+    [data-theme="light"] .badge.warn { background: rgba(217, 119, 6, 0.12); color: #b45309; }
+  </style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1 data-i18n="settings_title">Settings</h1>
+  <p data-i18n="settings_sub">The inverter connection, integrations, plugins and this device.</p>
+</div>
+
+<div id="err-bar" class="hint" style="display:none;color:var(--danger);"></div>
+
+<!-- ── Inverter ─────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title"><span data-i18n="card_inverter">Inverter</span><span id="inverter-profile-name" class="card-title-detail"></span></div>
+  <div class="form-grid">
+    <div class="form-group" id="port-select-row">
+      <label for="port-select" data-i18n="lbl_uart_port">UART port</label>
+      <select id="port-select">
+        <option data-i18n="opt_loading_ports">Loading ports...</option>
+      </select>
+    </div>
+    <div class="form-group" id="timezone-row">
+      <label for="timezone-select" data-i18n="lbl_timezone">Timezone</label>
+      <select id="timezone-select"></select>
+    </div>
+    <div class="form-group">
+      <label for="poll-interval" data-i18n="lbl_modbus_poll">Modbus Poll Interval (ms)</label>
+      <input type="number" id="poll-interval" min="1000" step="500">
+    </div>
+  </div>
+</div>
+
+<!-- ── MQTT · Home Assistant ────────────────────────────── -->
+<div class="card" id="mqtt-card">
+  <div class="card-title" data-i18n="card_mqtt">MQTT · Home Assistant</div>
+
+  <div class="toggle-row">
+    <label class="toggle">
+      <input type="checkbox" id="mqtt-enabled">
+      <span class="slider"></span>
+    </label>
+    <span class="toggle-label" data-i18n="lbl_enable_mqtt">Enable MQTT</span>
+  </div>
+
+  <div id="mqtt-fields" style="display:none">
+    <div class="status-row">
+      <span class="dot" id="mqtt-status-dot"></span>
+      <span id="mqtt-status-text" data-i18n="mqtt_checking">Checking…</span>
+    </div>
+    <div class="hint" style="margin-bottom:0.85rem">
+      <span data-i18n="lbl_last_state_published">Last state published:</span> <span id="mqtt-last-sent">—</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="mqtt-broker" data-i18n="lbl_mqtt_broker">Broker Host / IP</label>
+        <input type="text" id="mqtt-broker" placeholder="192.168.1.x">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-port" data-i18n="lbl_mqtt_port">Port</label>
+        <input type="number" id="mqtt-port" value="1883" min="1" max="65535">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-username" data-i18n="lbl_mqtt_username">Username (optional)</label>
+        <input type="text" id="mqtt-username" placeholder="">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-password" data-i18n="lbl_mqtt_password">Password (optional)</label>
+        <input type="password" id="mqtt-password" placeholder="">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-client-id" data-i18n="lbl_mqtt_client_id">Client ID</label>
+        <input type="text" id="mqtt-client-id" placeholder="solastat">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-device-name" data-i18n="lbl_mqtt_device_name">Device Name (in HA)</label>
+        <input type="text" id="mqtt-device-name" placeholder="SolaStat">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-topic-prefix" data-i18n="lbl_mqtt_topic_prefix">State Topic Prefix</label>
+        <input type="text" id="mqtt-topic-prefix" placeholder="solastat">
+      </div>
+      <div class="form-group">
+        <label for="mqtt-discovery-prefix" data-i18n="lbl_mqtt_discovery_prefix">HA Discovery Prefix</label>
+        <input type="text" id="mqtt-discovery-prefix" placeholder="homeassistant">
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" id="mqtt-btn-row" style="display:none">
+    <button class="secondary" id="mqtt-btn-rediscover" data-i18n="btn_resend_discovery">Re-send Discovery</button>
+  </div>
+  <div id="mqtt-msg" class="save-msg"></div>
+</div>
+
+<!-- ── Notifications ────────────────────────────────────── -->
+<div class="card" id="notif-card">
+  <div class="card-title" data-i18n="card_notifications">Notifications</div>
+
+  <div class="toggle-row">
+    <label class="toggle">
+      <input type="checkbox" id="notif-enabled">
+      <span class="slider"></span>
+    </label>
+    <span class="toggle-label" data-i18n="lbl_enable_notifications">Enable Notifications</span>
+  </div>
+
+  <div id="notif-fields" style="display:none">
+    <div class="hint" style="margin-top:0; margin-bottom:0.85rem" data-i18n="notif_hint">
+      Choose which events send a push notification to your phone.
+    </div>
+
+    <div class="setting-list">
+    <div class="check-row">
+      <input type="checkbox" id="notif-battery-full">
+      <label for="notif-battery-full" data-i18n="lbl_notif_battery_full">Battery charged to 100%</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="notif-battery-low">
+      <label for="notif-battery-low" data-i18n="lbl_notif_battery_low">Battery low</label>
+      <input type="number" id="notif-battery-low-threshold" min="1" max="99" value="20">
+      <span class="unit">%</span>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="notif-comm-error">
+      <label for="notif-comm-error" data-i18n="lbl_notif_comm_error">Communication error</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="notif-device-recovered">
+      <label for="notif-device-recovered" data-i18n="lbl_notif_device_recovered">Device recovered</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="notif-inverter-fault">
+      <label for="notif-inverter-fault" data-i18n="lbl_notif_inverter_fault">Inverter fault</label>
+    </div>
+    <!-- Populated dynamically from /api/notifications' plugin_types — one
+         row per notification type a compiled-in, authorized plugin
+         declares (see pluginapi.NotificationTypeProvider). The core never
+         hardcodes which plugins exist, so neither does this page. -->
+    <div id="notif-plugin-types"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Plugins ──────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title" data-i18n="card_plugins">Plugins</div>
+  <div class="hint" style="margin-top:0" id="plugins-hint" data-i18n="plugins_hint">
+    Plugins add new features to SolaStat. To activate one, paste its
+    license key below.
+  </div>
+
+  <div class="form-group" style="margin-top:0.85rem" id="plugin-id-group">
+    <label for="plugin-device-hash" data-i18n="lbl_device_hash">SolaStat ID</label>
+    <div class="input-group">
+      <input type="text" id="plugin-device-hash" readonly value="loading…">
+      <button type="button" class="secondary" id="plugin-hash-copy" data-i18n="btn_copy">Copy</button>
+    </div>
+    <div class="hint" style="margin-top:0.1rem" data-i18n="plugin_id_hint">Unique to this device and unchanged by reinstalls. Share it when asked, for example to get a plugin license key or for support.</div>
+  </div>
+
+  <div class="form-group" style="margin-top:0.7rem" id="plugin-key-group">
+    <label for="plugin-key-input" data-i18n="lbl_license_key">License key</label>
+    <div class="input-group">
+      <input type="text" id="plugin-key-input" placeholder="Paste your license key" data-i18n-placeholder="ph_license_key">
+      <button type="button" class="primary" id="plugin-key-activate" data-i18n="btn_activate">Activate</button>
+    </div>
+  </div>
+  <div id="plugin-activate-msg" class="save-msg"></div>
+
+  <div id="plugin-list"></div>
+  <div class="hint" style="margin-top:0.85rem" id="plugins-browse">
+    <a class="ext-link" data-site-href="smart-spot.html" href="https://www.solastat.com/smart-spot.html" target="_blank" rel="noopener" data-i18n="plugins_browse">See available plugins</a>
+  </div>
+</div>
+
+<!-- ── Data & backup ────────────────────────────────────── -->
+<div class="card" data-collapsed>
+  <div class="card-title" data-i18n="card_data">Data &amp; backup</div>
+  <div class="section-label" data-i18n="data_export_title">Export history (CSV)</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="export-from" data-i18n="lbl_export_from">From</label>
+      <div class="date-field">
+        <input type="text" id="export-from" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="DD/MM/YYYY" data-i18n-placeholder="ph_date">
+        <button type="button" class="secondary date-pick" data-i18n-aria-label="btn_pick_date" aria-label="Pick a date"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+        <input type="date" class="date-native" tabindex="-1" aria-hidden="true">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="export-to" data-i18n="lbl_export_to">To</label>
+      <div class="date-field">
+        <input type="text" id="export-to" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="DD/MM/YYYY" data-i18n-placeholder="ph_date">
+        <button type="button" class="secondary date-pick" data-i18n-aria-label="btn_pick_date" aria-label="Pick a date"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+        <input type="date" class="date-native" tabindex="-1" aria-hidden="true">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="export-format" data-i18n="lbl_export_format">Format</label>
+      <select id="export-format">
+        <option value="standard" data-i18n="opt_csv_standard">Standard (comma)</option>
+        <option value="excel" data-i18n="opt_csv_excel">Excel (semicolon)</option>
+      </select>
+    </div>
+  </div>
+  <div class="hint" data-i18n="data_export_hint">The history as recorded: one row per minute, with that minute's averages — powers in W, battery charge in %. Grid: positive = bought, negative = sold. Battery: positive = discharging, negative = charging. Up to 366 days per file.</div>
+  <div class="action-row">
+    <div id="export-msg" class="save-msg"></div>
+    <button type="button" class="primary" id="export-btn" data-i18n="btn_export_csv">Export CSV</button>
+  </div>
+
+  <div class="section-label section-gap" data-i18n="data_backup_title">Configuration backup</div>
+  <div class="hint" data-i18n="data_backup_hint">A file with the inverter profiles and connection, timezone, notifications and MQTT (password included: keep the file somewhere safe), to set up this device (or a new one) the same way. Not included: history (export it above), licenses, Wi-Fi and plugin settings.</div>
+  <div class="action-row">
+    <div id="backup-msg" class="save-msg"></div>
+    <div class="btn-pair">
+      <button type="button" class="secondary" id="restore-btn" data-i18n="btn_restore">Restore from file…</button>
+      <button type="button" class="primary" id="backup-btn" data-i18n="btn_backup_download">Download backup</button>
+    </div>
+  </div>
+  <input type="file" id="restore-file" accept=".json,application/json" hidden>
+</div>
+
+<!-- ── Reset to a fresh install ───────────────────────────── -->
+<div class="card" data-collapsed>
+  <div class="card-title" data-i18n="card_reset">Reset device</div>
+  <div class="setting-list">
+    <div class="action-row">
+      <div class="hint" data-i18n="setup_reset_hint">Deletes the history and every setting and goes back to the setup wizard, like a new device. Licenses and Wi-Fi are kept.</div>
+      <button type="button" class="danger" id="setup-reset-btn" data-i18n="btn_reset_wizard">Reset & Start Over</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirmation dialog (see confirmDialog) ─────────────── -->
+<div id="confirm-dialog" class="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-title" id="confirm-title"></div>
+    <div class="modal-body" id="confirm-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="confirm-cancel" data-i18n="btn_cancel">Cancel</button>
+      <button type="button" class="danger" id="confirm-ok"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ── About ────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title" data-i18n="card_about">About</div>
+  <div class="setting-list">
+    <div class="about-row"><span data-i18n="about_version">Version</span><span id="about-version">—</span></div>
+    <div class="about-row">
+      <span data-i18n="about_website">Website</span>
+      <a class="ext-link" data-site-href="" href="https://www.solastat.com/" target="_blank" rel="noopener">solastat.com</a>
+    </div>
+    <div class="about-row">
+      <span data-i18n="about_support">Help &amp; support</span>
+      <a class="ext-link" data-site-href="support.html" href="https://www.solastat.com/support.html" target="_blank" rel="noopener">solastat.com/support</a>
+    </div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar" hidden role="region" aria-live="polite">
+  <span class="txt" id="savebar-txt"></span>
+  <button type="button" class="secondary" id="btn-discard" data-i18n="btn_discard">Discard</button>
+  <button type="button" class="primary" id="btn-save" data-i18n="btn_save">Save</button>
+</div>
+
+<script src="/i18n.js"></script>
+<script src="/nav.js"></script>
+<script>
+  const routePrefix = window.location.pathname.startsWith('/solastat') ? '/solastat' : '';
+  const apiBase = window.location.origin + routePrefix;
+  fetch(apiBase + '/api/version')
+    .then((r) => r.json())
+    .then((d) => { if (d.version) document.getElementById('about-version').textContent = 'v' + d.version; })
+    .catch(() => {});
+
+  const API = {
+    profile:  apiBase + '/api/profile',
+    profiles: apiBase + '/api/profiles',
+    ports:    apiBase + '/api/ports',
+    mqtt:     apiBase + '/api/mqtt',
+    config:   apiBase + '/api/config',
+    notifications: apiBase + '/api/notifications',
+    timezone: apiBase + '/api/timezone',
+  };
+  const $ = (id) => document.getElementById(id);
+
+  // setSaveMsg shows a small pill-style status next to a Save/action
+  // button — 'busy' (or no type) while a request is in flight, 'ok'/'err'
+  // once it resolves. Empty text hides it again. The one place this
+  // behavior is defined on this page — every Save/Activate button here
+  // goes through it, and every plugin's own settings page defines the
+  // identical function, so feedback looks and times the same everywhere.
+  function setSaveMsg(el, text, type) {
+    el.textContent = text || '';
+    el.className = text ? 'save-msg visible ' + (type || 'busy') : 'save-msg';
+  }
+
+  function parseJsonOrThrow(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) throw new Error(`Unexpected response (${response.status})`);
+    return response.json();
+  }
+  function showErr(text) {
+    const el = $('err-bar');
+    el.textContent = text;
+    el.style.display = 'block';
+  }
+
+  // ── Data & backup: CSV export ───────────────────────────
+  // The dates are the device's local days (its configured timezone). The format
+  // defaults to Excel (semicolon, decimal comma) outside English, and the
+  // last choice is remembered on this browser.
+  (function initExport() {
+    const today = new Date();
+    $('export-from').value = fmtDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    $('export-to').value = fmtDate(today);
+
+    // Each date field: typing inserts the slashes, the calendar button opens
+    // the browser's picker and writes its choice back as DD/MM/YYYY.
+    document.querySelectorAll('.date-field').forEach((field) => {
+      const text = field.querySelector('input[type="text"]');
+      const native = field.querySelector('.date-native');
+      text.addEventListener('input', () => {
+        const digits = text.value.replace(/\D/g, '').slice(0, 8);
+        text.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean).join('/');
+      });
+      field.querySelector('.date-pick').onclick = () => {
+        native.value = displayToIsoDate(text.value);
+        if (native.showPicker) native.showPicker(); else native.click();
+      };
+      native.onchange = () => { if (native.value) text.value = isoDateToDisplay(native.value); };
+    });
+
+    let saved = null;
+    try { saved = localStorage.getItem('solastat_csv_format'); } catch (_) {}
+    $('export-format').value = saved || (lang === 'en' ? 'standard' : 'excel');
+    $('export-format').onchange = () => {
+      try { localStorage.setItem('solastat_csv_format', $('export-format').value); } catch (_) {}
+    };
+
+    $('export-btn').onclick = async () => {
+      const msg = $('export-msg');
+      const btn = $('export-btn');
+      const from = displayToIsoDate($('export-from').value);
+      const to = displayToIsoDate($('export-to').value);
+      if (!from || !to) {
+        setSaveMsg(msg, t('err_date_format'), 'err');
+        return;
+      }
+      const params = new URLSearchParams({
+        from,
+        to,
+        format: $('export-format').value,
+      });
+      setSaveMsg(msg, t('msg_exporting'));
+      btn.disabled = true;
+      try {
+        const r = await fetch(apiBase + '/api/history/export.csv?' + params);
+        if (!r.ok) {
+          const data = await parseJsonOrThrow(r);
+          throw new Error(data.error || 'HTTP ' + r.status);
+        }
+        const blob = await r.blob();
+        const match = /filename="([^"]+)"/.exec(r.headers.get('content-disposition') || '');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = match ? match[1] : 'solastat.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        setSaveMsg(msg, t('msg_exported'), 'ok');
+      } catch (e) {
+        setSaveMsg(msg, t('err_generic', { msg: e.message }), 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  })();
+
+  // ── Data & backup: configuration backup / restore ───────
+  // A download is a plain link to /api/backup; a restore reads the file here
+  // first, so the confirmation can say what it contains before anything is
+  // sent, then reloads the page to show the restored settings.
+  (function initBackup() {
+    const msg = $('backup-msg');
+    const download = (href) => {
+      const a = document.createElement('a');
+      a.href = href;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    };
+    $('backup-btn').onclick = () => {
+      download(apiBase + '/api/backup');
+      setSaveMsg(msg, t('msg_backup_done'), 'ok');
+    };
+    $('restore-btn').onclick = () => { $('restore-file').value = ''; $('restore-file').click(); };
+    $('restore-file').onchange = async () => {
+      const file = $('restore-file').files[0];
+      if (!file) return;
+      let backup;
+      try {
+        backup = JSON.parse(await file.text());
+        if (backup.format !== 'solastat-config') throw new Error();
+      } catch (_) {
+        setSaveMsg(msg, t('err_backup_file'), 'err');
+        return;
+      }
+      const created = backup.created ? fmtDateTime(new Date(backup.created)) : '?';
+      const summary = t('restore_confirm', {
+        date: created,
+        profile: backup.active_profile || '—',
+        timezone: backup.timezone || '—',
+        profiles: Object.keys(backup.profiles || {}).length,
+      });
+      if (!confirm(summary)) return;
+      setSaveMsg(msg, t('msg_restoring'));
+      try {
+        const r = await fetch(apiBase + '/api/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(backup),
+        });
+        const data = await parseJsonOrThrow(r);
+        if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+        const warnings = data.warnings || [];
+        setSaveMsg(msg, warnings.length ? t('msg_restored_warn', { msg: warnings.join('; ') }) : t('msg_restored'), 'ok');
+        setTimeout(() => location.reload(), warnings.length ? 5000 : 1500);
+      } catch (e) {
+        setSaveMsg(msg, t('err_generic', { msg: e.message }), 'err');
+      }
+    };
+  })();
+
+  // ── UART port ────────────────────────────────────────────
+  function loadPorts() {
+    fetch(API.ports)
+      .then(r => {
+        if (!r.ok) {
+          return parseJsonOrThrow(r).then(data => { throw new Error(data.error || 'HTTP ' + r.status); });
+        }
+        return parseJsonOrThrow(r);
+      })
+      .then(data => {
+        const select = $('port-select');
+        const current = data.current;
+        const ports = data.ports || [];
+        select.innerHTML = '';
+        if (ports.length === 0) {
+          const opt = document.createElement('option');
+          opt.textContent = t('opt_no_ports');
+          opt.disabled = true;
+          select.appendChild(opt);
+        } else {
+          ports.forEach(port => {
+            const opt = document.createElement('option');
+            opt.value = port;
+            opt.textContent = port;
+            opt.selected = port === current;
+            select.appendChild(opt);
+          });
+        }
+      })
+      .catch(err => {
+        $('port-select').innerHTML = '<option disabled selected>' + t('msg_no_ports_err', { msg: err.message }) + '</option>';
+      });
+  }
+  $('port-select').addEventListener('change', (e) => {
+    const port = e.target.value;
+    if (!port) return;
+    fetch(API.ports, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ port }),
+    })
+      .then(r => parseJsonOrThrow(r))
+      .then(() => loadPorts())
+      .catch((err) => {
+        showErr(t('msg_port_switch_failed', { msg: err.message }));
+        loadPorts();
+      });
+  });
+
+  fetch(API.config)
+    .then(r => r.json())
+    .then(cfg => {
+      if (cfg.fixedUARTPort) { // certified SolaStat board: fixed UART port (decided by the backend)
+        $('port-select-row').style.display = 'none';
+      } else {
+        loadPorts();
+      }
+    })
+    .catch(() => { loadPorts(); });
+
+  // ── Timezone ─────────────────────────────────────────────
+  // Populated from the browser's own IANA tz database (same approach as
+  // the wizard's Step 1) rather than a hardcoded list — always complete,
+  // never goes stale.
+  function loadTimezones() {
+    const select = $('timezone-select');
+    let zones;
+    try {
+      zones = Intl.supportedValuesOf('timeZone');
+    } catch {
+      zones = [
+        'Europe/Lisbon', 'Europe/Madrid', 'Europe/London', 'Europe/Paris',
+        'Europe/Berlin', 'Europe/Rome', 'Europe/Amsterdam', 'Europe/Brussels',
+        'Europe/Dublin', 'Europe/Warsaw', 'Europe/Athens', 'Europe/Helsinki',
+        'Europe/Bucharest', 'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen',
+        'Europe/Vienna', 'Europe/Zurich', 'UTC',
+      ];
+    }
+    select.innerHTML = '';
+    zones.forEach((z) => {
+      const opt = document.createElement('option');
+      opt.value = z;
+      opt.textContent = z.replace(/_/g, ' ');
+      select.appendChild(opt);
+    });
+    fetch(API.timezone)
+      .then(r => parseJsonOrThrow(r))
+      .then(d => {
+        // The device's own (its system settings): none of SolaStat's to pick.
+        $('timezone-row').style.display = d.system ? 'none' : '';
+        if (d.timezone) select.value = d.timezone;
+      })
+      .catch(err => showErr(t('msg_no_ports_err', { msg: err.message })));
+  }
+  $('timezone-select').addEventListener('change', (e) => {
+    fetch(API.timezone, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timezone: e.target.value }),
+    })
+      .then(r => parseJsonOrThrow(r))
+      .catch((err) => {
+        showErr(err.message);
+        loadTimezones();
+      });
+  });
+  loadTimezones();
+
+  applyStaticI18n();
+
+  initProfiles();
+
+  // ── MQTT ─────────────────────────────────────────────────
+  function setMqttMsg(text, type) {
+    setSaveMsg($('mqtt-msg'), text, type);
+  }
+  function applyMqttStatus(st, broker, port) {
+    const dot = $('mqtt-status-dot');
+    const txt = $('mqtt-status-text');
+    if (st.connected) {
+      dot.className = 'dot on';
+      txt.textContent = t('msg_mqtt_connected', { broker, port });
+    } else {
+      dot.className = 'dot err';
+      txt.textContent = st.error ? t('msg_mqtt_disconnected_err', { err: st.error }) : t('msg_mqtt_disconnected');
+    }
+    $('mqtt-last-sent').textContent = st.last_sent
+      ? new Date(st.last_sent).toLocaleTimeString(locale(), { hour12: false })
+      : '—';
+  }
+  function updateMqttFieldsVisibility() {
+    const enabled = $('mqtt-enabled').checked;
+    $('mqtt-fields').style.display = enabled ? '' : 'none';
+    $('mqtt-btn-row').style.display = enabled ? '' : 'none';
+  }
+  $('mqtt-enabled').addEventListener('change', updateMqttFieldsVisibility);
+  function fillMqtt(cfg) {
+    $('mqtt-enabled').checked        = !!cfg.enabled;
+    $('mqtt-broker').value           = cfg.broker           || '';
+    $('mqtt-port').value             = cfg.port             || 1883;
+    $('mqtt-username').value         = cfg.username         || '';
+    $('mqtt-password').value         = cfg.password         || '';
+    $('mqtt-client-id').value        = cfg.client_id        || 'solastat';
+    $('mqtt-device-name').value      = cfg.device_name      || 'SolaStat';
+    $('mqtt-topic-prefix').value     = cfg.topic_prefix     || 'solastat';
+    $('mqtt-discovery-prefix').value = cfg.discovery_prefix || 'homeassistant';
+    updateMqttFieldsVisibility();
+  }
+  function collectMqtt() {
+    return {
+      enabled:          $('mqtt-enabled').checked,
+      broker:           $('mqtt-broker').value.trim(),
+      port:             parseInt($('mqtt-port').value) || 1883,
+      username:         $('mqtt-username').value.trim(),
+      password:         $('mqtt-password').value,
+      client_id:        $('mqtt-client-id').value.trim()        || 'solastat',
+      device_name:      $('mqtt-device-name').value.trim()      || 'SolaStat',
+      topic_prefix:     $('mqtt-topic-prefix').value.trim()     || 'solastat',
+      discovery_prefix: $('mqtt-discovery-prefix').value.trim() || 'homeassistant',
+    };
+  }
+  function loadMqttConfig() {
+    return fetch(API.mqtt)
+      .then(parseJsonOrThrow)
+      .then(d => {
+        const cfg = d.config || {};
+        fillMqtt(cfg);
+        applyMqttStatus(d.status || {}, cfg.broker, cfg.port);
+        return cfg;
+      });
+  }
+  function pollMqttStatus() {
+    fetch(API.mqtt)
+      .then(r => r.json())
+      .then(d => {
+        const cfg = d.config || {};
+        const st  = d.status || {};
+        applyMqttStatus(st, cfg.broker, cfg.port);
+      })
+      .catch(() => {});
+  }
+  $('mqtt-btn-rediscover').addEventListener('click', () => {
+    setMqttMsg(t('msg_mqtt_sending_discovery'));
+    fetch(API.mqtt + '/discover', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setMqttMsg(d.error, 'err'); return; }
+        setMqttMsg(t('msg_mqtt_discovery_sent'), 'ok');
+        setTimeout(() => setMqttMsg(''), 3000);
+      })
+      .catch(err => setMqttMsg(err.message, 'err'));
+  });
+
+  setInterval(() => { if (!document.hidden) pollMqttStatus(); }, 5000);
+
+  // ── Notifications ──────────────────────────────────────────
+  function updateNotifFieldsVisibility() {
+    $('notif-fields').style.display = $('notif-enabled').checked ? '' : 'none';
+  }
+  $('notif-enabled').addEventListener('change', updateNotifFieldsVisibility);
+
+  // renderPluginTypes builds one check-row per plugin-declared notification
+  // type (from /api/notifications' plugin_types) — no plugin is named here,
+  // a plugin's label and key come entirely from what the core reports.
+  function renderPluginTypes(pluginTypes) {
+    const el = $('notif-plugin-types');
+    el.innerHTML = '';
+    pluginTypes.forEach((pt) => {
+      const row = document.createElement('div');
+      row.className = 'check-row';
+      row.dataset.pluginKey = pt.key;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!pt.enabled;
+      const label = document.createElement('label');
+      label.dataset.labels = JSON.stringify(pt.labels || {});
+      label.dataset.label = pt.label;
+      label.textContent = pluginTypeLabel(label);
+      row.appendChild(cb);
+      row.appendChild(label);
+      el.appendChild(row);
+    });
+  }
+
+  // pluginTypeLabel is a plugin notification's label in the page's language
+  // (the plugin's own translation), else its English label.
+  function pluginTypeLabel(el) {
+    const labels = JSON.parse(el.dataset.labels || '{}');
+    return labels[lang] || labels.en || el.dataset.label;
+  }
+  document.addEventListener('solastat:lang', () => {
+    document.querySelectorAll('#notif-plugin-types .check-row label').forEach((l) => { l.textContent = pluginTypeLabel(l); });
+  });
+
+  // pluginTypeChecks is the {key: checked} map of the plugin rows shown.
+  function pluginTypeChecks() {
+    const out = {};
+    document.querySelectorAll('#notif-plugin-types .check-row').forEach((row) => {
+      out[row.dataset.pluginKey] = row.querySelector('input[type="checkbox"]').checked;
+    });
+    return out;
+  }
+
+  // Re-fetches just the plugin_types list — called from loadPlugins' own 10s
+  // poll further down this file, so a newly-activated plugin's notification
+  // checkbox appears without a page reload. Rows are only rebuilt when the
+  // set of types changed, and rows already shown keep their (possibly
+  // unsaved) state; a new row joins the Save bar's baseline as the server
+  // has it, so it doesn't count as an edit.
+  function refreshNotifPluginTypes() {
+    fetch(API.notifications)
+      .then(parseJsonOrThrow)
+      .then(data => {
+        const types = data.plugin_types || [];
+        const shown = pluginTypeChecks();
+        if (types.length === Object.keys(shown).length && types.every((pt) => pt.key in shown)) return;
+        renderPluginTypes(types.map((pt) => pt.key in shown ? { ...pt, enabled: shown[pt.key] } : pt));
+        if (saved) {
+          const base = {};
+          types.forEach((pt) => { base[pt.key] = pt.key in saved.notif.plugin_types ? saved.notif.plugin_types[pt.key] : !!pt.enabled; });
+          saved.notif.plugin_types = base;
+        }
+        updateSavebar();
+      })
+      .catch(() => {});
+  }
+
+  function fillNotif(cfg) {
+    $('notif-enabled').checked             = !!cfg.enabled;
+    $('notif-battery-full').checked        = !!cfg.battery_full;
+    $('notif-battery-low').checked         = !!cfg.battery_low;
+    $('notif-battery-low-threshold').value = cfg.battery_low_threshold || 20;
+    $('notif-comm-error').checked          = !!cfg.comm_error;
+    $('notif-device-recovered').checked    = !!cfg.device_recovered;
+    $('notif-inverter-fault').checked      = !!cfg.inverter_fault;
+    const types = cfg.plugin_types || {};
+    document.querySelectorAll('#notif-plugin-types .check-row').forEach((row) => {
+      if (row.dataset.pluginKey in types) row.querySelector('input[type="checkbox"]').checked = !!types[row.dataset.pluginKey];
+    });
+    updateNotifFieldsVisibility();
+  }
+  function collectNotif() {
+    return {
+      enabled:                $('notif-enabled').checked,
+      battery_full:           $('notif-battery-full').checked,
+      battery_low:            $('notif-battery-low').checked,
+      battery_low_threshold:  parseFloat($('notif-battery-low-threshold').value) || 20,
+      comm_error:             $('notif-comm-error').checked,
+      device_recovered:       $('notif-device-recovered').checked,
+      inverter_fault:         $('notif-inverter-fault').checked,
+      plugin_types:           pluginTypeChecks(),
+    };
+  }
+  function loadNotifConfig() {
+    return fetch(API.notifications)
+      .then(parseJsonOrThrow)
+      .then(data => {
+        renderPluginTypes(data.plugin_types || []);
+        fillNotif(data.config || {});
+      });
+  }
+
+  // ── Save bar (MQTT + Notifications) ─────────────────────────
+  // Same flow as Price Shift's page: editing either card shows a sticky bar
+  // with Discard and Save; Save posts only the cards that changed. saved is
+  // both cards as last loaded/saved, in collectMqtt/collectNotif's shape —
+  // null until both have loaded, so a failed load can never post defaults
+  // over the real config.
+  let saved = null;
+  const sections = {
+    mqtt:  { url: API.mqtt,          collect: collectMqtt,  fill: fillMqtt },
+    notif: { url: API.notifications, collect: collectNotif, fill: fillNotif },
+  };
+  const isDirty = (k) => JSON.stringify(sections[k].collect()) !== JSON.stringify(saved[k]);
+  const anyDirty = () => !!saved && Object.keys(sections).some(isDirty);
+
+  function updateSavebar(text, cls) {
+    const dirty = anyDirty();
+    $('savebar').hidden = !dirty && !text;
+    $('savebar-txt').textContent = text || (dirty ? t('msg_unsaved') : '');
+    $('savebar-txt').className = 'txt' + (cls ? ' ' + cls : '');
+    $('btn-discard').hidden = !dirty;
+    $('btn-save').hidden = !dirty;
+  }
+
+  ['mqtt-card', 'notif-card'].forEach((id) => {
+    $(id).addEventListener('input', (e) => { e.target.classList?.remove('invalid'); updateSavebar(); });
+    $(id).addEventListener('change', () => updateSavebar());
+  });
+  $('btn-discard').addEventListener('click', () => {
+    for (const k of Object.keys(sections)) sections[k].fill(saved[k]);
+    $('mqtt-broker').classList.remove('invalid');
+    updateSavebar();
+  });
+  $('btn-save').addEventListener('click', save);
+
+  function save() {
+    const mqtt = collectMqtt();
+    if (mqtt.enabled && !mqtt.broker) {
+      $('mqtt-broker').classList.add('invalid');
+      $('mqtt-broker').focus();
+      updateSavebar(t('msg_mqtt_broker_required'), 'err');
+      return;
+    }
+    const jobs = Object.keys(sections).filter(isDirty).map((k) => {
+      const cfg = sections[k].collect();
+      return fetch(sections[k].url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg),
+      })
+        .then(parseJsonOrThrow)
+        .then((d) => {
+          if (d.error) throw new Error(d.error);
+          saved[k] = cfg;
+          if (k === 'mqtt') setTimeout(pollMqttStatus, 1500);
+        });
+    });
+    $('btn-save').disabled = true;
+    updateSavebar(t('msg_saving'));
+    Promise.allSettled(jobs).then((results) => {
+      $('btn-save').disabled = false;
+      const failed = results.find((r) => r.status === 'rejected');
+      if (failed) { updateSavebar(failed.reason.message, 'err'); return; }
+      updateSavebar(t('msg_saved'), 'ok');
+      setTimeout(() => updateSavebar(), 2500);
+    });
+  }
+
+  Promise.all([loadMqttConfig(), loadNotifConfig()])
+    .then(() => {
+      saved = { mqtt: collectMqtt(), notif: collectNotif() };
+      updateSavebar();
+    })
+    .catch((err) => showErr(err.message));
+
+  // ── Inverter profile ─────────────────────────────────────
+  // The active profile isn't picked or edited here: its name is shown in the
+  // card title, and only its Modbus poll interval can be changed. Saving the
+  // active profile reloads it, so a new interval applies right away.
+  let activeProfile = null;
+  function initProfiles() {
+    fetch(API.profile)
+      .then(parseJsonOrThrow)
+      .then((d) => {
+        activeProfile = d;
+        $('inverter-profile-name').textContent = d.profile?.name || d.id || '';
+        $('poll-interval').value = d.profile?.modbus?.poll_interval_ms ?? 5000;
+      })
+      .catch((e) => showErr(e.message));
+  }
+  $('poll-interval').addEventListener('change', (e) => {
+    const ms = Math.round(Number(e.target.value));
+    if (!activeProfile || !(ms >= 1000)) {
+      e.target.value = activeProfile?.profile?.modbus?.poll_interval_ms ?? 5000;
+      return;
+    }
+    const profile = { ...activeProfile.profile, modbus: { ...activeProfile.profile.modbus, poll_interval_ms: ms } };
+    fetch(API.profiles, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: activeProfile.id, profile }),
+    })
+      .then(parseJsonOrThrow)
+      .then((d) => { if (d.error) throw new Error(d.error); })
+      .catch((err) => showErr(err.message))
+      .finally(initProfiles);
+  });
+</script>
+
+<!-- ── Plugins: generic license-key activation for compiled-in plugins
+     (relay, smartspot, ...) — each checks its own key and only shows
+     up here once it reports itself
+     authorized. The core never decides authorization itself, so there's
+     one hash and one "paste a key" box, not one per plugin. Kept in a
+     separate <script> so it can reuse the $()/apiBase helpers declared
+     above without redeclaring them. ──────────────────────────────────── -->
+<script>
+  function loadPlugins() {
+    fetch(apiBase + '/api/plugins')
+      .then(parseJsonOrThrow)
+      .then((data) => {
+        $('plugin-device-hash').value = data.device_hash || 'unavailable';
+        // A certified board's plugins come with it: only the list, no key
+        // to ask for, nor plugins to buy.
+        const certified = !!data.certified;
+        ['plugins-hint', 'plugin-id-group', 'plugin-key-group', 'plugin-activate-msg', 'plugins-browse'].forEach((id) => {
+          $(id).style.display = certified ? 'none' : '';
+        });
+        const el = $('plugin-list');
+        el.classList.toggle('included', certified);
+        el.innerHTML = '';
+        const plugins = data.plugins || [];
+        const keys = data.keys || [];
+        window.solastatNav?.setPlugins(plugins);
+        if (plugins.length === 0) {
+          el.innerHTML = '<div class="hint" style="margin-top:0">' + t('msg_no_plugins') + '</div>';
+        } else {
+          plugins.forEach((p) => el.appendChild(renderPlugin(p, keys, certified)));
+        }
+        refreshNotifPluginTypes();
+      })
+      .catch((e) => { $('plugin-list').textContent = t('msg_plugin_load_error', { msg: e.message }); });
+  }
+
+  function deactivateKey(key, msgEl) {
+    fetch(apiBase + '/api/plugins/deactivate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    })
+      .then(parseJsonOrThrow)
+      .then(() => loadPlugins())
+      .catch((e) => setSaveMsg(msgEl, e.message, 'err'));
+  }
+
+  // keys is the full stored pool (raw, opaque strings) — matched back to
+  // this plugin by decoding which plugin_ids each one names, purely for
+  // showing a Remove button next to the plugin it unlocks. A plugin
+  // authorized by more than one key gets one Remove button per key; one on
+  // a certified board with none is "Included".
+  function renderPlugin(p, keys, certified) {
+    const row = document.createElement('div');
+    row.className = 'plugin-row';
+    const matchingKeys = keys.filter((k) => (decodeKeyPlugins(k) || []).includes(p.id));
+    const removeButtons = matchingKeys.map((k) =>
+      `<button type="button" class="secondary" style="padding:0.15rem 0.6rem; font-size:0.72rem" data-key="${encodeURIComponent(k)}">${t('plugin_btn_remove')}</button>`
+    ).join('');
+    const expiryLine = matchingKeys
+      .map((k) => formatKeyExpiry(decodeKeyPayload(k)?.exp))
+      .join(' · ');
+    const metaParts = [p.version ? t('lbl_version_prefix', { v: p.version }) : '', expiryLine].filter(Boolean);
+    row.innerHTML = `
+      <div>
+        <div class="plugin-name">${p.icon ? p.icon + ' ' : ''}${pluginDisplayName(p.id)}</div>
+        <div class="hint" style="margin-top:0.2rem">${metaParts.join(' · ')}</div>
+      </div>
+      <span class="plugin-actions">
+        <span class="badge ok">${t(certified && !matchingKeys.length ? 'plugin_included' : 'plugin_active')}</span>
+        ${removeButtons}
+      </span>
+    `;
+    row.querySelectorAll('button[data-key]').forEach((btn) => {
+      btn.addEventListener('click', () => deactivateKey(decodeURIComponent(btn.dataset.key), $('plugin-activate-msg')));
+    });
+    return row;
+  }
+
+  $('plugin-hash-copy').addEventListener('click', () => {
+    const input = $('plugin-device-hash');
+    input.select();
+    input.setSelectionRange(0, input.value.length); // mobile browsers need this too
+    // navigator.clipboard needs a secure context (HTTPS or localhost) — this
+    // app is typically reached over plain HTTP on the LAN, where it's
+    // undefined, so the old code silently did nothing beyond select(). Fall
+    // back to the older execCommand, which still works over plain HTTP.
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(input.value).catch(() => { document.execCommand('copy'); });
+    } else {
+      document.execCommand('copy');
+    }
+  });
+
+  // Decodes a pasted key's payload ({serial_hash, plugins, exp}) for
+  // display only — the confirmation message, matching a stored key back
+  // to the plugin row it unlocks, and showing its expiry. It never
+  // decides whether activation succeeds.
+  function decodeKeyPayload(key) {
+    try {
+      const rest = key.trim().replace(/^SOLA1-/, '');
+      const payloadB64 = rest.split('.')[0];
+      let b64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const json = decodeURIComponent(atob(b64).split('').map((c) =>
+        '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  function decodeKeyPlugins(key) {
+    const plugins = decodeKeyPayload(key)?.plugins;
+    return Array.isArray(plugins) && plugins.length ? plugins : null;
+  }
+
+  // Plugin ids are internal; show the name each plugin reports (nav.js
+  // keeps the /api/plugins list).
+  function pluginDisplayName(id) {
+    if (window.solastatNav && window.solastatNav.pluginName) return window.solastatNav.pluginName(id);
+    return id.charAt(0).toUpperCase() + id.slice(1);
+  }
+
+  function keyPluginNames(key) {
+    const plugins = decodeKeyPlugins(key);
+    return plugins ? plugins.map(pluginDisplayName).join(', ') : null;
+  }
+
+  // Order-independent equality, for spotting an existing key that unlocks
+  // the exact same plugin(s) as a newly pasted one — e.g. a new
+  // relay key with a new expiry. Only an exact match is treated as a
+  // replacement, so a broader key (e.g. relay+smartspot) never gets
+  // silently dropped by activating a narrower one (relay only).
+  function sameStringSet(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    const sa = [...a].sort();
+    const sb = [...b].sort();
+    return sa.every((v, i) => v === sb[i]);
+  }
+
+  // exp is unix seconds, 0/absent for a perpetual key (see pkg/auth.payload).
+  function formatKeyExpiry(exp) {
+    if (!exp) return t('plugin_no_expiry');
+    return t('plugin_expires', { date: fmtDate(new Date(exp * 1000)) });
+  }
+
+  // A key names which plugin(s) it unlocks but never a version, so
+  // issuing a new one (e.g. to extend/shorten its expiry) produces a
+  // different opaque string that Activate would just append alongside the
+  // old one — both then match the same plugin row forever, showing up as
+  // duplicate Remove buttons and a stale expiry alongside the new one.
+  // The core deliberately never parses keys (see pluginhub's doc comment),
+  // so this decides client-side which stored key(s) the new one is really
+  // replacing, and deactivates those first — keeping only the latest.
+  function deactivateStaleKeys(oldKeys, newKey, newPlugins) {
+    if (!newPlugins) return Promise.resolve();
+    const stale = oldKeys.filter((k) => k !== newKey && sameStringSet(decodeKeyPlugins(k), newPlugins));
+    return Promise.all(stale.map((k) =>
+      fetch(apiBase + '/api/plugins/deactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: k }),
+      })
+    ));
+  }
+
+  $('plugin-key-activate').addEventListener('click', () => {
+    const msg = $('plugin-activate-msg');
+    const keyInput = $('plugin-key-input');
+    setSaveMsg(msg, t('msg_key_activating'));
+    const newKey = keyInput.value.trim();
+    const newPlugins = decodeKeyPlugins(newKey);
+
+    fetch(apiBase + '/api/plugins')
+      .then(parseJsonOrThrow)
+      .then((data) => deactivateStaleKeys(data.keys || [], newKey, newPlugins))
+      .then(() => fetch(`${apiBase}/api/plugins/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: newKey }),
+      }))
+      .then(async (r) => {
+        const d = await parseJsonOrThrow(r);
+        if (!r.ok) throw new Error(d.error || 'activation failed');
+      })
+      .then(() => {
+        const names = keyPluginNames(newKey);
+        setSaveMsg(msg, names ? t('msg_key_stored_named', { names }) : t('msg_key_stored_generic'), 'ok');
+        keyInput.value = '';
+        setTimeout(loadPlugins, 3000);
+        setTimeout(() => setSaveMsg(msg, ''), 3000);
+      })
+      .catch((e) => setSaveMsg(msg, e.message, 'err'));
+  });
+
+  loadPlugins();
+  setInterval(() => { if (!document.hidden) loadPlugins(); }, 10000);
+
+  // ── Reset & re-run wizard ────────────────────────────────
+  // confirmDialog shows the page's own confirmation dialog and resolves to
+  // true when confirmed. body is built from trusted markup (translations);
+  // Esc, a click outside or Cancel resolve to false.
+  function confirmDialog({ title, body, okLabel }) {
+    const dlg = $('confirm-dialog');
+    $('confirm-title').textContent = title;
+    $('confirm-body').innerHTML = body;
+    $('confirm-ok').textContent = okLabel;
+    dlg.hidden = false;
+    $('confirm-cancel').focus();
+    return new Promise((resolve) => {
+      const close = (answer) => {
+        dlg.hidden = true;
+        document.removeEventListener('keydown', onKey);
+        dlg.onclick = $('confirm-ok').onclick = $('confirm-cancel').onclick = null;
+        resolve(answer);
+      };
+      const onKey = (e) => { if (e.key === 'Escape') close(false); };
+      document.addEventListener('keydown', onKey);
+      dlg.onclick = (e) => { if (e.target === dlg) close(false); };
+      $('confirm-cancel').onclick = () => close(false);
+      $('confirm-ok').onclick = () => close(true);
+    });
+  }
+
+  // Reset to a fresh install: the server deletes the history and every
+  // setting (keeping licenses and Wi-Fi), then the wizard starts over.
+  $('setup-reset-btn').addEventListener('click', async () => {
+    const items = ['reset_item_history', 'reset_item_settings', 'reset_item_log']
+      .map((k) => '<li>' + t(k) + '</li>').join('');
+    const ok = await confirmDialog({
+      title: t('reset_title'),
+      body: '<p>' + t('reset_deletes') + '</p><ul>' + items + '</ul>' +
+            '<p>' + t('reset_kept') + '</p><p class="warn">' + t('reset_undo_warning') + '</p>',
+      okLabel: t('btn_reset_confirm'),
+    });
+    if (!ok) return;
+    const btn = $('setup-reset-btn');
+    btn.disabled = true;
+    try {
+      const r = await fetch(apiBase + '/api/setup/reset', { method: 'POST' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+    } catch (e) {
+      btn.disabled = false;
+      showErr(t('err_generic', { msg: e.message }));
+      return;
+    }
+    window.location.href = routePrefix + '/wizard';
+  });
+</script>
+<!-- ── Cards that close and open from their title, remembered in this
+     browser; closed at first only where data-collapsed says so (the ones
+     rarely used). A card showing an error opens itself, not to hide it. ── -->
+<script>
+  (function () {
+    const STORE = 'solastat_settings_collapsed';
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (_) {}
+    function remember(key, collapsed) {
+      saved[key] = collapsed;
+      try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (_) {}
+    }
+
+    document.querySelectorAll('.card').forEach((card) => {
+      const title = card.firstElementChild;
+      if (!title || !title.classList.contains('card-title')) return;
+      // The card's name key (card_mqtt…), the same in every language.
+      const named = title.matches('[data-i18n]') ? title : title.querySelector('[data-i18n]');
+      const key = named ? named.dataset.i18n : '';
+      if (!key) return;
+
+      card.classList.add('collapsible');
+      title.setAttribute('role', 'button');
+      title.tabIndex = 0;
+      function set(collapsed) {
+        card.classList.toggle('collapsed', collapsed);
+        title.setAttribute('aria-expanded', String(!collapsed));
+      }
+      set(key in saved ? !!saved[key] : card.hasAttribute('data-collapsed'));
+
+      function toggle() {
+        const collapsed = !card.classList.contains('collapsed');
+        set(collapsed);
+        remember(key, collapsed);
+      }
+      title.addEventListener('click', toggle);
+      title.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+
+      // An error shown inside a closed card opens it (this time only).
+      new MutationObserver(() => {
+        if (card.classList.contains('collapsed') && card.querySelector('.save-msg.err')) set(false);
+      }).observe(card, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    });
+  })();
+</script>
+</body>
+</html>

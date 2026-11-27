@@ -1,0 +1,172 @@
+{
+  "name": "Astronergy Microinverter (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Power 1 Voltage",
+      "address": 0,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Power 1 Current",
+      "address": 5,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Power 1 Voltage",
+      "address": 1,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Power 1 Current",
+      "address": 6,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv3_total_power_p_v",
+      "label": "PV3 Power 1 Voltage",
+      "address": 2,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_i",
+      "label": "PV3 Power 1 Current",
+      "address": 7,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv4_total_power_p_v",
+      "label": "PV4 Power 1 Voltage",
+      "address": 3,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv4_total_power_p_i",
+      "label": "PV4 Power 1 Current",
+      "address": 8,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "inverter_ac_power",
+      "label": "AC Output Power",
+      "address": 15,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 11,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 9,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 13,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "unit": "W",
+      "product_of": [
+        "pv1_total_power_p_v",
+        "pv1_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "unit": "W",
+      "product_of": [
+        "pv2_total_power_p_v",
+        "pv2_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv3_total_power",
+      "label": "PV3 Power",
+      "unit": "W",
+      "product_of": [
+        "pv3_total_power_p_v",
+        "pv3_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv4_total_power",
+      "label": "PV4 Power",
+      "unit": "W",
+      "product_of": [
+        "pv4_total_power_p_v",
+        "pv4_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power",
+        "pv3_total_power",
+        "pv4_total_power"
+      ]
+    }
+  ]
+}

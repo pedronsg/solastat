@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolaStat</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    :root {
+      --solar:   #f59e0b;
+      --grid:    #818cf8;
+      --battery: #34d399;
+      --home:    #60a5fa;
+      /* Palette of solastat.com: black stage, neutral near-black cards and greys,
+         energy colours unchanged, the sun gradient as the one accent. */
+      --bg:          #0b1120;
+      --card:        #111113;
+      --border:      #26262b;
+      --field:       #0a0a0b;
+      --accent:      #f59e0b;
+      --accent-grad: linear-gradient(100deg, #fde047 0%, #f59e0b 45%, #f97316 100%);
+      --accent-ink:  #1a1206;
+      --text:    #f5f5f7;
+      --muted:   #a1a1aa;
+      --danger:  #f87171;
+      --warn:    #fb923c;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      /* Night-blue with a soft blue glow, like the "Every watt. Live."
+         section of solastat.com. Fixed, so it doesn't scroll with the page. */
+      background:
+        radial-gradient(90% 55% at 50% 0%, rgba(96, 165, 250, 0.16), transparent 70%),
+        radial-gradient(80% 50% at 50% 100%, rgba(129, 140, 248, 0.22), transparent 70%),
+        var(--bg);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 0.75rem;
+      /* One centred column, like the other Orbit OS apps (Sprinqua): on a
+         desktop the page no longer stretches across the whole screen. */
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+    @media (min-width: 640px) { body { padding: 1.25rem 1.5rem; } }
+
+
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--danger);
+      flex-shrink: 0;
+      transition: background 0.4s;
+    }
+    .dot.on { background: var(--battery); }
+    .dot.warn { background: var(--warn); }
+
+    .profile-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .profile-status {
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* ── Error bar ───────────────────────────────────────── */
+    #err-bar {
+      display: none;
+      background: #450a0a;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 0.75rem;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.78rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── SVG flow card ───────────────────────────────────── */
+    .flow-card {
+      position: relative;
+      /* A faint warm glow behind the sun node, like the solastat.com hero. */
+      background:
+        radial-gradient(120% 70% at 50% 0%, rgba(245, 158, 11, 0.09), transparent 60%),
+        var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1rem 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+
+    .flow-card-status {
+      position: absolute;
+      top: 0.6rem;
+      left: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      z-index: 10;
+    }
+
+
+    #flow-svg { width: 100%; display: block; max-width: 480px; margin: 0 auto; }
+
+    /* animated dash lines */
+    .flow-line {
+      fill: none;
+      stroke-width: 3;
+      stroke-dasharray: 7 5;
+      opacity: 0.18;
+      transition: opacity 0.4s;
+    }
+    .flow-line.fwd  { opacity: 1; animation: dash-fwd 1.2s linear infinite; }
+    .flow-line.rev  { opacity: 1; animation: dash-rev 1.2s linear infinite; }
+    @keyframes dash-fwd { to { stroke-dashoffset: -120; } }
+    @keyframes dash-rev { to { stroke-dashoffset:  120; } }
+    .flow-particle {
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      filter: drop-shadow(0 0 5px rgba(255,255,255,0.35));
+    }
+    .flow-particle.core { r: 3.4; }
+    .flow-particle.tail { r: 2.7; }
+
+    /* ── Node energy animation (glow pulse) ──────────────────
+       Only ever animates while that node currently has real flow through
+       it (same on/off thresholds the connecting lines already use) — an
+       idle node stays perfectly still, so the animation reads as "energy
+       is moving here" rather than empty decoration. ──────────────────── */
+    .node-glow { transition: filter 0.5s ease; }
+    .node-icon { overflow: visible; pointer-events: none; }
+    .node-lbl { fill: var(--muted); font-size: 8.5px; font-weight: 600; letter-spacing: .08em; }
+    .node-glow.active { animation: node-pulse 2.4s ease-in-out infinite; }
+    @keyframes node-pulse {
+      0%, 100% { filter: drop-shadow(0 0 0px var(--glow-color, transparent)); }
+      50%      { filter: drop-shadow(0 0 7px var(--glow-color, transparent)); }
+    }
+
+    /* ── Analytics tabs ──────────────────────────────────── */
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.65rem;
+    }
+    .atabs {
+      display: flex;
+      gap: 0.3rem;
+    }
+    .atab {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 0.45rem;
+      padding: 0.28rem 0.85rem;
+      font-size: 0.72rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .atab:hover { color: var(--text); border-color: var(--muted); }
+    .atab.active {
+      background: var(--border);
+      color: var(--text);
+      border-color: var(--border);
+      font-weight: 600;
+    }
+
+    /* ── View tabs (Power · AC · DC), only when the profile reads V/A ── */
+    .vtabs {
+      display: flex;
+      gap: 1rem;
+      margin: -0.2rem 0 0.6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .vtabs[hidden], .vtab[hidden] { display: none; }
+    .vtab {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-family: inherit;
+      padding: 0.15rem 0.1rem 0.35rem;
+      margin-bottom: -1px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .vtab:hover { color: var(--text); }
+    .vtab.active { color: var(--text); border-bottom-color: var(--grid); font-weight: 600; }
+    .stats[hidden] { display: none; }
+    .vstat-range {
+      font-size: 0.66rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Stats grid ──────────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+      margin-top: 0.65rem;
+      margin-bottom: 0.1rem;
+    }
+
+    @media (min-width: 420px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.85rem;
+    }
+
+    .stat-ico { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; flex: none; }
+    .stat-lbl {
+      font-size: 0.67rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+    }
+
+    .stat-val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .stat-unit {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: 0.15rem;
+    }
+
+    /* ── Profile info ────────────────────────────────────── */
+
+    .profiles-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .profiles-card h2 {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    .profiles-help {
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-bottom: 0.55rem;
+    }
+    #profiles-list {
+      display: grid;
+      gap: 0.4rem;
+      margin-bottom: 0.7rem;
+    }
+    .profile-item {
+      border: 1px solid var(--border);
+      border-radius: 0.55rem;
+      padding: 0.5rem 0.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .profile-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .btn-del {
+      border: 1px solid var(--danger);
+      background: transparent;
+      color: var(--danger);
+      border-radius: 0.4rem;
+      padding: 0.3rem 0.45rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+    #profile-json {
+      width: 100%;
+      min-height: 170px;
+      background: var(--field);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.55rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+    }
+    #profiles-msg {
+      margin-top: 0.45rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    #profile-save {
+      margin-top: 0.45rem;
+      border: none;
+      background: var(--accent-grad);
+      color: var(--accent-ink);
+      font-weight: 600;
+      border-radius: 0.4rem;
+      padding: 0.38rem 0.6rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+    .analytics-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .history-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.55rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .history-controls select {
+      appearance: none;
+      background: var(--field);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.35rem 1.8rem 0.35rem 0.7rem;
+      font-size: 0.75rem;
+      font-family: inherit;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.55rem center;
+      transition: border-color 0.15s;
+    }
+    .history-controls select:hover { border-color: var(--muted); }
+    .date-nav {
+      display: flex;
+      align-items: center;
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .date-nav:hover { border-color: var(--muted); }
+    .date-nav-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+    .date-nav-btn:hover:not(:disabled) { color: var(--text); background: var(--border); }
+    .date-nav-btn:disabled { color: var(--border); cursor: default; }
+    .date-nav-sep { width: 1px; background: var(--border); align-self: stretch; }
+    .date-nav-wrap { position: relative; }
+    #date-display {
+      background: none;
+      border: none;
+      font-size: 0.75rem;
+      color: var(--text);
+      padding: 0 0.6rem;
+      min-width: 5.5rem;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    #date-display:hover { color: var(--grid); }
+
+    /* ── Date picker popup ───────────────────────────────── */
+    .date-picker-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      z-index: 200;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+      min-width: 210px;
+    }
+    .date-picker-popup.open { display: block; }
+    @media (max-width: 520px) {
+      .date-picker-popup {
+        position: fixed;
+        top: auto;
+        bottom: 1rem;
+        right: 0.75rem;
+        left: 0.75rem;
+        min-width: unset;
+        border-radius: 1rem;
+      }
+    }
+    .dp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.55rem;
+    }
+    .dp-nav-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.35rem;
+      font-family: inherit;
+      transition: color 0.15s, background 0.15s;
+    }
+    .dp-nav-btn:hover { color: var(--text); background: var(--border); }
+    #dp-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .dp-grid { display: grid; }
+    .dp-grid.dp-days   { grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .dp-grid.dp-months { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .dp-grid.dp-years  { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .dp-dow {
+      text-align: center;
+      font-size: 0.62rem;
+      color: var(--muted);
+      padding: 0.15rem 0 0.3rem;
+    }
+    .dp-cell {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 0.35rem;
+      font-size: 0.72rem;
+      text-align: center;
+      padding: 0.32rem 0.1rem;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s;
+    }
+    .dp-cell:not(:disabled):hover { background: var(--border); }
+    .dp-cell.today { color: var(--grid); font-weight: 700; }
+    .dp-cell.selected { background: var(--accent-grad) !important; color: var(--accent-ink); font-weight: 700; }
+    .dp-cell:disabled { color: var(--border); cursor: default; }
+    .dp-cell.empty { pointer-events: none; }
+    .dp-footer { margin-top: 0.6rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .dp-cycle {
+      display: none;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.66rem;
+      color: var(--muted);
+    }
+    .dp-cycle.show { display: inline-flex; }
+    #dp-cycle-day {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 0.4rem;
+      padding: 0.15rem 0.2rem;
+      font-size: 0.68rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    #dp-today {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 0.4rem;
+      padding: 0.22rem 1rem;
+      font-size: 0.68rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #dp-today:hover { color: var(--text); border-color: var(--muted); }
+    #history-status {
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-top: 0.45rem;
+      margin-bottom: 0.1rem;
+      min-height: 1em;
+    }
+    .history-legend {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .series-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      padding: 0.18rem 0.65rem 0.18rem 0.45rem;
+      font-size: 0.68rem;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color 0.15s, border-color 0.15s, opacity 0.15s;
+      opacity: 0.4;
+      user-select: none;
+    }
+    .series-toggle::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--sc, var(--muted));
+      flex-shrink: 0;
+    }
+    .series-toggle[data-key="solar_w"]   { --sc: #f59e0b; }
+    .series-toggle[data-key="load_w"]    { --sc: #60a5fa; }
+    .series-toggle[data-key="grid_w"]    { --sc: #818cf8; }
+    .series-toggle[data-key="battery_w"] { --sc: #34d399; }
+    .series-toggle.dashed::before { border-radius: 1px; height: 2px; width: 9px; }
+    .series-toggle.dotted::before {
+      border-radius: 0; height: 2px; width: 9px;
+      background: repeating-linear-gradient(90deg, var(--sc) 0 2px, transparent 2px 4px);
+    }
+    .series-toggle.active {
+      opacity: 1;
+      color: var(--sc);
+      border-color: var(--sc);
+    }
+    /* Export CSV is a button.secondary (nav.js); only its icon is sized here. */
+    /* The card's own actions, at its foot: on the right, the width of the row on a phone (nav.js). */
+    #chart-export-row { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.85rem; }
+    #chart-export-btn svg, #inverter-restart-btn svg { width: 13px; height: 13px; flex: none; }
+    #inverter-restart-btn[hidden] { display: none; }
+    #history-canvas {
+      width: 100%;
+      height: 220px;
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.55rem;
+      display: block;
+    }
+
+    /* ── Activation history ─────────────────────────────── */
+    .hist-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 0.85rem;
+    }
+    .hist-card ul { list-style: none; }
+    .hist-card li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .hist-card li:last-child { border-bottom: none; }
+    .hist-card li.empty { color: var(--muted); font-style: italic; }
+  /* ── Activity log ────────────────────────────────────── */
+  .hist-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.85rem;
+  }
+  .hist-card ul { list-style: none; }
+  .hist-card li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .hist-card li:last-child { border-bottom: none; }
+  .hist-card li.empty { color: var(--muted); font-style: italic; }
+  /* Newer · page · Older: the buttons share the row, the page count between. */
+  .hist-pager {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+  }
+  .hist-pager-info { font-size: 0.75rem; color: var(--muted); white-space: nowrap; text-align: center; }
+
+
+  /* ── Kiosk: the two main cards side by side, full screen ─ */
+  .kiosk-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, opacity 0.3s;
+  }
+  .kiosk-btn:hover { color: var(--text); border-color: var(--muted); }
+  .kiosk-btn svg { width: 15px; height: 15px; }
+  .kiosk-btn .ico-exit { display: none; }
+  /* PC and tablet only: on a phone the page already fills the screen. */
+  @media (min-width: 768px) { .kiosk-btn { display: inline-flex; } }
+  .kiosk-bar { display: none; }
+
+  body.kiosk {
+    max-width: none;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1.5rem;
+    transform: translate(var(--kiosk-dx, 0px), var(--kiosk-dy, 0px));
+  }
+  body.kiosk.has-app-nav { padding-top: 1.25rem; }
+  body.kiosk .app-nav,
+  body.kiosk .hist-card,
+  body.kiosk footer { display: none; }
+  body.kiosk .kiosk-btn { display: inline-flex; }
+  body.kiosk .kiosk-btn .ico-enter { display: none; }
+  body.kiosk .kiosk-btn .ico-exit { display: block; }
+  body.kiosk.kiosk-idle { cursor: none; }
+  body.kiosk.kiosk-idle .kiosk-btn { opacity: 0; pointer-events: none; }
+  body.kiosk .kiosk-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  /* The nav's logo (nav.js styles .app-nav-logo), bigger. */
+  .kiosk-brand.app-nav-logo { font-size: 1.6rem; gap: 10px; align-self: center; }
+  .kiosk-brand img { border-radius: 8px; }
+  .kiosk-time { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kiosk-date { color: var(--muted); font-size: 1rem; margin-left: 0.8rem; text-transform: capitalize; }
+  body.kiosk .dash-main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  body.kiosk .flow-card,
+  body.kiosk .dash-main .analytics-card { margin-bottom: 0; min-height: 0; }
+  body.kiosk .flow-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem 1rem;
+  }
+  body.kiosk #flow-svg { max-width: none; width: 100%; height: 100%; }
+  body.kiosk .flow-card-status .profile-label,
+  body.kiosk .flow-card-status .profile-status { font-size: 0.9rem; }
+  body.kiosk .dash-main .analytics-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: 1.25rem;
+  }
+  body.kiosk #history-canvas { height: 40vh; }
+  body.kiosk .stats { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  body.kiosk .stat-lbl { font-size: 0.9rem; }
+  body.kiosk .stat-ico { width: 16px; height: 16px; }
+  body.kiosk .stat-val { font-size: 2.1rem; }
+  body.kiosk .stat-unit { font-size: 0.95rem; }
+  body.kiosk #chart-export-row { display: none; }
+  /* A tablet held upright: one card above the other. */
+  @media (orientation: portrait) {
+    body.kiosk .dash-main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    body.kiosk #history-canvas { height: 25vh; }
+  }
+
+
+    /* ── Light theme: the colours not taken from the variables ── */
+    [data-theme="light"] #err-bar { background: #fef2f2; }
+    [data-theme="light"] .flow-particle { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.25)); }
+    [data-theme="light"] .date-picker-popup { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14); }
+    [data-theme="light"] .node-icon[stroke="#fbbf24"] { stroke: #d97706; }
+    [data-theme="light"] .node-icon[stroke="#93c5fd"] { stroke: #2563eb; }
+    [data-theme="light"] .node-icon[stroke="#6ee7b7"] { stroke: #059669; }
+    [data-theme="light"] .node-icon[stroke="#a5b4fc"] { stroke: #6366f1; }
+  </style>
+</head>
+<body>
+
+<div class="kiosk-bar">
+  <div class="app-nav-logo kiosk-brand"><img src="/favicon.svg" alt="" width="34" height="34"><span class="app-nav-wordmark"><b>Sola</b>Stat</span><span class="app-nav-edition" hidden></span></div>
+  <div><span class="kiosk-time" id="kiosk-time"></span><span class="kiosk-date" id="kiosk-date"></span></div>
+</div>
+
+<div id="err-bar"></div>
+
+<div class="dash-main">
+<!-- ── Energy flow SVG ────────────────────────────────────── -->
+<div class="flow-card">
+  <button type="button" id="kiosk-btn" class="kiosk-btn" data-i18n-title="kiosk_enter" title="Full screen" data-i18n-aria-label="kiosk_enter" aria-label="Full screen">
+    <svg class="ico-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+    <svg class="ico-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
+  </button>
+  <div class="flow-card-status">
+    <span class="dot" id="dot"></span>
+    <span class="profile-label" id="active-profile-label"></span><span class="profile-status" id="inverter-status-text"></span>
+  </div>
+  <svg id="flow-svg" viewBox="0 0 360 335" preserveAspectRatio="xMidYMid meet">
+
+    <!-- Lines (drawn first, behind circles) -->
+    <!-- Solar → Home (vertical) -->
+    <line id="ln-solar"   class="flow-line" stroke="var(--solar)"
+          x1="180" y1="76" x2="180" y2="126"/>
+    <!-- Home → Battery (diagonal left) -->
+    <line id="ln-battery" class="flow-line" stroke="var(--battery)"
+          x1="155" y1="193" x2="96"  y2="233"/>
+    <!-- Home → Grid (diagonal right) -->
+    <line id="ln-grid"    class="flow-line" stroke="var(--grid)"
+          x1="205" y1="193" x2="264" y2="233"/>
+    <circle id="pt-solar-1" class="flow-particle core" cx="180" cy="100" r="3.4" fill="var(--solar)"/>
+    <circle id="pt-solar-2" class="flow-particle tail" cx="180" cy="100" r="2.7" fill="var(--solar)"/>
+    <circle id="pt-solar-3" class="flow-particle tail" cx="180" cy="100" r="2.7" fill="var(--solar)"/>
+    <circle id="pt-battery-1" class="flow-particle core" cx="126" cy="214" r="3.4" fill="var(--battery)"/>
+    <circle id="pt-battery-2" class="flow-particle tail" cx="126" cy="214" r="2.7" fill="var(--battery)"/>
+    <circle id="pt-battery-3" class="flow-particle tail" cx="126" cy="214" r="2.7" fill="var(--battery)"/>
+    <circle id="pt-grid-1" class="flow-particle core" cx="234" cy="214" r="3.4" fill="var(--grid)"/>
+    <circle id="pt-grid-2" class="flow-particle tail" cx="234" cy="214" r="2.7" fill="var(--grid)"/>
+    <circle id="pt-grid-3" class="flow-particle tail" cx="234" cy="214" r="2.7" fill="var(--grid)"/>
+
+    <!-- Solar node (line icons: same set as the solastat.com hero flow) -->
+    <circle id="node-solar-glow" class="node-glow" style="--glow-color:var(--solar)" cx="180" cy="52" r="36" fill="var(--card)" stroke="var(--solar)" stroke-width="2.5"/>
+    <svg class="node-icon" x="170" y="25" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <text x="180" y="60"  text-anchor="middle" fill="var(--text)"  font-size="13" font-weight="700" id="sv-solar-w">--</text>
+    <text x="180" y="72"  text-anchor="middle" class="node-lbl">SOLAR</text>
+
+    <!-- Home node -->
+    <circle id="node-home-glow" class="node-glow" style="--glow-color:var(--home)" cx="180" cy="163" r="40" fill="var(--card)" stroke="var(--home)" stroke-width="2.5"/>
+    <svg class="node-icon" x="170" y="136" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    <text x="180" y="171" text-anchor="middle" fill="var(--text)"  font-size="13" font-weight="700" id="sv-load-w">--</text>
+    <text x="180" y="183" text-anchor="middle" class="node-lbl">LOAD</text>
+
+    <!-- Battery node -->
+    <circle id="node-battery-glow" class="node-glow" style="--glow-color:var(--battery)" cx="72" cy="262" r="37" fill="var(--card)" stroke="var(--battery)" stroke-width="2.5"/>
+    <!-- row 1: icon + SOC -->
+    <svg class="node-icon" x="50" y="236" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2"/><rect id="sv-batt-fill" x="5" y="9" width="0" height="6" rx="0.8" stroke="none" fill="#6ee7b7"/></svg>
+    <text x="69"  y="244" text-anchor="start"  dominant-baseline="middle" fill="var(--muted)" font-size="10" font-weight="700" id="sv-soc">--</text>
+    <!-- row 2: arrow + watts -->
+    <text id="sv-batt-arrow" x="40" y="262" text-anchor="start"  dominant-baseline="middle" fill="var(--battery)" font-size="16" font-weight="700"></text>
+    <text id="sv-batt-w"     x="72" y="262" text-anchor="middle" dominant-baseline="middle" fill="var(--battery)" font-size="13" font-weight="700">--</text>
+    <!-- row 3: name, like SOLAR / LOAD / GRID (moves up a little when the
+         health row below is shown) -->
+    <text id="sv-batt-lbl" x="72" y="283" text-anchor="middle" dominant-baseline="middle" class="node-lbl">BATTERY</text>
+    <!-- row 4: health icon + % (only when the inverter reports it) -->
+    <g id="sv-bhealth-grp" transform="translate(0 7)" style="display:none;cursor:help"><title>Battery Health</title>
+      <rect x="59" y="279" width="10" height="8"   rx="1.5" fill="#dc2626"/>
+      <rect x="62" y="276.5" width="4" height="2.5" rx="0.8" fill="none" stroke="#dc2626" stroke-width="1.1"/>
+      <rect x="60.5" y="282" width="7" height="1.5" rx="0.3" fill="white"/>
+      <rect x="63.3" y="279.5" width="1.5" height="6" rx="0.3" fill="white"/>
+      <text id="sv-bhealth" x="71" y="283" text-anchor="start" dominant-baseline="middle" fill="var(--muted)" font-size="8"></text>
+    </g>
+
+    <!-- Grid node -->
+    <circle id="node-grid-glow" class="node-glow" style="--glow-color:var(--grid)" cx="288" cy="262" r="37" fill="var(--card)" stroke="var(--grid)" stroke-width="2.5"/>
+    <svg class="node-icon" x="279" y="235" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"><path d="M8 21 12 3l4 18"/><path d="M6 8h12M5 13h14"/></svg>
+    <text id="sv-grid-arrow" x="256" y="262" text-anchor="start"  dominant-baseline="middle" fill="var(--grid)" font-size="16" font-weight="700"></text>
+    <text x="288" y="262" text-anchor="middle" dominant-baseline="middle" fill="var(--grid)" font-size="13" font-weight="700" id="sv-grid-w">--</text>
+    <!-- name (moves up a little when the frequency row below is shown, like
+         the battery's health) -->
+    <text id="sv-grid-lbl" x="288" y="283" text-anchor="middle" dominant-baseline="middle" class="node-lbl">GRID</text>
+    <!-- frequency (only when the inverter reports it) -->
+    <text id="sv-grid-hz" x="288" y="290" text-anchor="middle" dominant-baseline="middle" fill="var(--muted)" font-size="8" style="display:none"></text>
+
+  </svg>
+</div>
+
+<div class="analytics-card">
+  <div class="vtabs" id="vtabs" hidden>
+    <button class="vtab active" data-view="power" data-i18n="vtab_power">Power</button>
+    <button class="vtab" data-view="ac" data-i18n="vtab_ac">AC</button>
+    <button class="vtab" data-view="dc" data-i18n="vtab_dc">DC</button>
+  </div>
+  <div class="analytics-header">
+    <div class="atabs">
+      <button class="atab active" data-period="day" data-i18n="atab_day">Day</button>
+      <button class="atab" data-period="month" data-i18n="atab_month">Month</button>
+      <button class="atab" data-period="year" data-i18n="atab_year">Year</button>
+    </div>
+    <div class="date-nav-wrap">
+      <div class="date-nav">
+        <button id="btn-date-prev" class="date-nav-btn">‹</button>
+        <div class="date-nav-sep"></div>
+        <button id="date-display"></button>
+        <div class="date-nav-sep"></div>
+        <button id="btn-date-next" class="date-nav-btn">›</button>
+      </div>
+      <div id="date-picker" class="date-picker-popup">
+        <div class="dp-header">
+          <button id="dp-prev" class="dp-nav-btn">‹</button>
+          <span id="dp-title"></span>
+          <button id="dp-next" class="dp-nav-btn">›</button>
+        </div>
+        <div id="dp-grid" class="dp-grid"></div>
+        <div class="dp-footer">
+          <button id="dp-today" data-i18n="dp_today">Today</button>
+          <label id="dp-cycle" class="dp-cycle" data-i18n-title="dp_cycle_title" title="Day each month starts on, e.g. to follow your electricity bill"><span data-i18n="dp_cycle_day">Starts on day</span><select id="dp-cycle-day"></select></label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <canvas id="history-canvas" width="900" height="220"></canvas>
+  <div class="history-bottom">
+    <div class="history-legend" id="history-legend"></div>
+  </div>
+  <div class="stats" id="vstats" hidden></div>
+  <div class="stats" id="pstats">
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--solar)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span data-i18n="stat_solar_label">Solar</span></div>
+      <div><span class="stat-val" id="st-solar" style="color:var(--solar)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--home)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span data-i18n="stat_consumption_label">Consumption</span></div>
+      <div><span class="stat-val" id="st-load" style="color:var(--home)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--grid)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"/></svg><span data-i18n="stat_import_label">Imported</span></div>
+      <div><span class="stat-val" id="st-import" style="color:var(--grid)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--grid)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"/></svg><span data-i18n="stat_export_label">Exported</span></div>
+      <div><span class="stat-val" id="st-export" style="color:var(--grid)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--battery)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M10.5 9.5v5M8 12h5"/></svg><span data-i18n="stat_charged_label">Charged</span></div>
+      <div><span class="stat-val" id="st-bcharged" style="color:var(--battery)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl" style="color:var(--battery)"><svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M8 12h5"/></svg><span data-i18n="stat_discharged_label">Discharged</span></div>
+      <div><span class="stat-val" id="st-bdischarged" style="color:var(--battery)">--</span><span class="stat-unit">kWh</span></div>
+    </div>
+  </div>
+  <div id="history-status"></div>
+  <div class="btn-row" id="chart-export-row">
+    <button type="button" id="inverter-restart-btn" class="secondary" hidden data-i18n-title="inverter_restart_title" title="Restart the inverter (it stops producing for a minute or two)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg><span data-i18n="btn_inverter_restart">Restart inverter</span></button>
+    <button type="button" id="chart-export-btn" class="secondary" data-i18n-title="chart_export_title" title="Export what the chart shows (every minute) as CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span data-i18n="btn_export_csv">Export CSV</span></button>
+  </div>
+</div>
+</div>
+
+<div class="analytics-card hist-card">
+  <div class="hist-title" data-i18n="hist_title">Logs</div>
+  <ul id="event-log"><li class="empty" data-i18n="log_loading">Loading…</li></ul>
+  <div class="hist-pager">
+    <button id="event-log-prev" class="secondary" disabled data-i18n="log_prev">‹ Newer</button>
+    <span id="event-log-page-info" class="hist-pager-info"></span>
+    <button id="event-log-next" class="secondary" disabled data-i18n="log_next">Older ›</button>
+  </div>
+</div>
+
+<script src="/i18n.js"></script>
+<script src="/nav.js"></script>
+<script>
+  // ── Helpers ──────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+
+  function monthShortName(m) { return new Intl.DateTimeFormat(locale(), { month: 'short' }).format(new Date(2000, m, 1)); }
+  function weekdayNarrowName(dow) { return new Intl.DateTimeFormat(locale(), { weekday: 'narrow' }).format(new Date(2023, 0, 1 + dow)); }
+  let lastRenderData = null;
+  // A theme switch redraws what's drawn in JS with the new colours.
+  document.addEventListener('solastat:theme', () => {
+    renderChartView();
+    drawHistoryChart(historyState.buckets);
+    if (lastRenderData) render(lastRenderData);
+  });
+  function setLang(l) {
+    lang = l;
+    try { localStorage.setItem('solastat_lang', l); } catch (_) {}
+    applyStaticI18n();
+    updateDateDisplay();
+    if ($('date-picker').classList.contains('open')) renderDatePicker();
+    loadHistory();
+    loadTotals();
+    loadEventLog();
+    if (lastRenderData) render(lastRenderData);
+  }
+
+  // Build API base from current route.
+  // When opened via AppHub under /solastat, API is proxied at /solastat/api.
+  const routePrefix = window.location.pathname.startsWith('/solastat') ? '/solastat' : '';
+  const apiBase = window.location.origin + routePrefix;
+  // Colours drawn in JS (charts, the battery fill) follow the theme: TC
+  // picks the dark one (the page's own) or its light counterpart; SC does
+  // it for a series colour, from its darker light-theme pair.
+  const isLight = () => document.documentElement.dataset.theme === 'light';
+  const TC = (dark, light) => (isLight() ? light : dark);
+  const LIGHT_SERIES = {
+    '#f59e0b': '#d97706', '#60a5fa': '#2563eb', '#818cf8': '#6366f1', '#34d399': '#059669',
+    '#f472b6': '#db2777', '#2dd4bf': '#0d9488', '#fbbf24': '#ca8a04', '#a3e635': '#65a30d',
+    '#fb923c': '#ea580c', '#fde047': '#ca8a04', '#a78bfa': '#7c3aed', '#fb7185': '#e11d48',
+    '#22d3ee': '#0891b2', '#e879f9': '#c026d3', '#fca5a5': '#dc2626', '#38bdf8': '#0284c7',
+    '#e4e4e7': '#3f3f46',
+  };
+  const SC = (c) => (isLight() && LIGHT_SERIES[c]) || c;
+
+  const API = {
+    data:    apiBase + '/api/data',
+    profile: apiBase + '/api/profile',
+    profiles: apiBase + '/api/profiles',
+    ports:   apiBase + '/api/ports',
+    history: apiBase + '/api/history',
+    totals:  apiBase + '/api/totals',
+    monthStart: apiBase + '/api/month-start',
+    events:  apiBase + '/events',
+  };
+
+
+
+  function parseJsonOrThrow(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(`Unexpected response (${response.status} ${response.statusText})`);
+    }
+    return response.json();
+  }
+
+  function fmt(v, dec) {
+    if (v == null || isNaN(v)) return '--';
+    return Number(v).toLocaleString('en', {
+      minimumFractionDigits: dec ?? 0,
+      maximumFractionDigits: dec ?? 0,
+    });
+  }
+
+  const historyState = {
+    range: 'day',
+    date: '',
+    buckets: [],
+    start: null, end: null, // the loaded period, from /api/history
+    monthStartDay: 1, // a month runs from this day to the same day next month
+    timer: null,
+  };
+
+  const chartState = {
+    plot: null, scales: {},
+    snapshot: null, buckets: [], allBuckets: [], dpr: 1, cssW: 900,
+  };
+
+  const zoomState = { start: 0, end: -1 };
+
+  function resetZoom() { zoomState.start = 0; zoomState.end = -1; }
+
+  // The chart's views. Power is always there; AC and DC show the voltages
+  // and currents the active profile reads (series with no reading never
+  // show). Currents are dashed, on their own axis on the right. The grid
+  // frequency is dotted, off until picked in the legend (with V and A it
+  // makes the chart busy), on its own scale.
+  const VIEWS = {
+    power: [
+      { key: 'solar_w',   color: '#f59e0b', label: () => t('legend_solar'),       tip: () => t('tooltip_solar'), unit: 'W' },
+      { key: 'load_w',    color: '#60a5fa', label: () => t('legend_consumption'), tip: () => t('tooltip_load'),  unit: 'W' },
+      { key: 'grid_w',    color: '#818cf8', label: () => t('legend_grid'),        tip: () => t('tooltip_grid'),  unit: 'W' },
+      { key: 'battery_w', color: '#34d399', label: () => t('legend_battery'),     tip: () => t('tooltip_batt'),  unit: 'W' },
+    ],
+    // Single-phase (or L1), then L2 and L3: those only once their voltage
+    // has been seen above 50 V (single-phase models may read them as 0).
+    ac: [
+      { key: 'grid_v', reading: 'grid_voltage', color: '#818cf8', label: () => phaseLabel(1) + ' V', unit: 'V' },
+      { key: 'grid_a', reading: 'grid_current', color: '#f472b6', label: () => phaseLabel(1) + ' A', unit: 'A' },
+      { key: 'grid_v_l2', reading: 'grid_voltage_l2', color: '#2dd4bf', label: () => 'L2 V', unit: 'V' },
+      { key: 'grid_a_l2', reading: 'grid_current_l2', needs: 'grid_voltage_l2', color: '#fbbf24', label: () => 'L2 A', unit: 'A' },
+      { key: 'grid_v_l3', reading: 'grid_voltage_l3', color: '#a3e635', label: () => 'L3 V', unit: 'V' },
+      { key: 'grid_a_l3', reading: 'grid_current_l3', needs: 'grid_voltage_l3', color: '#fb923c', label: () => 'L3 A', unit: 'A' },
+      { key: 'grid_f', reading: 'grid_frequency', color: '#e4e4e7', label: () => 'Hz', unit: 'Hz', off: true },
+    ],
+    dc: [
+      // One colour per series (voltage, current), so no two lines look alike.
+      ...[[1, '#f59e0b', '#fde047'], [2, '#a78bfa', '#fb7185'], [3, '#a3e635', '#22d3ee'], [4, '#e879f9', '#fca5a5']]
+        .flatMap(([n, vColor, aColor]) => [
+          { key: `pv${n}_v`, reading: `pv${n}_total_power_p_v`, color: vColor, label: () => `PV${n} V`, unit: 'V', producing: true },
+          { key: `pv${n}_a`, reading: `pv${n}_total_power_p_i`, color: aColor, label: () => `PV${n} A`, unit: 'A', producing: true },
+        ]),
+      { key: 'battery_v', reading: 'battery_voltage', color: '#34d399', label: () => t('legend_battery') + ' V', unit: 'V' },
+      { key: 'battery_a', reading: 'battery_current', color: '#38bdf8', label: () => t('legend_battery') + ' A', unit: 'A' },
+    ],
+  };
+  // chartVisible: the legend's picks, remembered; a series never picked
+  // starts on, unless it is marked off.
+  const chartVisible = {};
+  Object.values(VIEWS).flat().forEach(s => { chartVisible[s.key] = !s.off; });
+  try { Object.assign(chartVisible, JSON.parse(localStorage.getItem('solastat_chart_series')) || {}); } catch (_) {}
+  // Live readings seen since the page opened: a series shows once its
+  // reading has (never hidden again, so one failed poll doesn't flicker).
+  const seenReadings = new Set();
+  // chartView is the view picked (remembered); shownView the one on screen,
+  // Power until the picked one's readings have shown up.
+  let chartView = 'power';
+  try { chartView = localStorage.getItem('solastat_chart_view') || 'power'; } catch (_) {}
+  if (!VIEWS[chartView]) chartView = 'power';
+  let shownView = 'power';
+
+  function viewSeries(view) {
+    return VIEWS[view || shownView].filter(s => (!s.reading || seenReadings.has(s.reading)) && (!s.needs || seenReadings.has(s.needs)));
+  }
+
+  // phaseLabel: "Grid" on a single-phase inverter, "L1" once L2 shows.
+  function phaseLabel(n) {
+    return seenReadings.has('grid_voltage_l2') ? 'L' + n : t('legend_grid');
+  }
+
+  // unitDec: decimals a V, A or Hz value is shown with.
+  const unitDec = (unit) => (unit === 'Hz' ? 2 : 1);
+
+  function fmtUnit(v, unit) {
+    if (unit === 'W') return (v > 0 ? '+' : '') + fmt(v) + ' W';
+    return fmt(v, unitDec(unit)) + ' ' + unit;
+  }
+
+  function fmtBucketTime(ts, range) {
+    if (ts == null) return '';
+    const ms = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : Number(ts);
+    const d = new Date(ms);
+    if (isNaN(d)) return String(ts);
+    if (range === 'day')   return d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (range === 'month') return d.toLocaleDateString(locale(), { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(locale(), { month: 'short', year: 'numeric' });
+  }
+
+  function drawTooltip(ctx, x, bucket, plot, range) {
+    const series = viewSeries().map(s => ({ ...s, label: (s.tip || s.label)() }));
+    const lines = series.filter(s => chartVisible[s.key] && bucket[s.key] != null && Number.isFinite(bucket[s.key]));
+    if (!lines.length) return;
+
+    const timeStr = fmtBucketTime(bucket.ts, range);
+    const PAD = 9, LH = 15;
+    const boxW = 130;
+    const boxH = PAD * 2 + (timeStr ? LH + 4 : 0) + lines.length * LH;
+
+    let bx = x + 14;
+    if (bx + boxW > plot.x + plot.w + 4) bx = x - boxW - 14;
+    const by = Math.max(plot.y + 2, Math.min(plot.y + plot.h - boxH - 2, plot.y + (plot.h - boxH) / 2));
+
+    ctx.save();
+    ctx.fillStyle = TC('rgba(17,17,19,0.95)', 'rgba(255,255,255,0.97)');
+    ctx.strokeStyle = TC('rgba(63,63,70,0.9)', 'rgba(212,212,216,0.95)');
+    ctx.lineWidth = 1;
+    const r = 7;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by); ctx.lineTo(bx + boxW - r, by);
+    ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + r);
+    ctx.lineTo(bx + boxW, by + boxH - r);
+    ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - r, by + boxH);
+    ctx.lineTo(bx + r, by + boxH);
+    ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    let ty = by + PAD + 10;
+    if (timeStr) {
+      ctx.fillStyle = TC('#a1a1aa', '#52525b');
+      ctx.font = '600 9.5px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(timeStr, bx + PAD, ty);
+      ty += LH + 4;
+    }
+    for (const s of lines) {
+      ctx.beginPath();
+      ctx.arc(bx + PAD + 3.5, ty - 3.5, 3, 0, Math.PI * 2);
+      ctx.fillStyle = SC(s.color); ctx.fill();
+      ctx.fillStyle = TC('#a1a1aa', '#52525b');
+      ctx.font = '10.5px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(s.label, bx + PAD + 11, ty);
+      const v = bucket[s.key];
+      ctx.fillStyle = TC('#f1f5f9', '#18181b');
+      ctx.font = '600 10.5px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmtUnit(v, s.unit), bx + boxW - PAD, ty);
+      ty += LH;
+    }
+    ctx.restore();
+  }
+
+  function toDateInputValue(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // cycleStart is the first day (YYYY-MM-DD) of the month holding iso, a
+  // month starting on historyState.monthStartDay (as the server counts it).
+  function cycleStart(iso) {
+    const sd = historyState.monthStartDay;
+    const d = new Date(iso + 'T00:00:00');
+    if (d.getDate() < sd) d.setMonth(d.getMonth() - 1, 1);
+    d.setDate(sd);
+    return toDateInputValue(d);
+  }
+
+  // monthLabel: "10/2026", or "5 Oct – 4 Nov" when months follow a cycle.
+  function monthLabel(iso) {
+    const start = cycleStart(iso);
+    if (historyState.monthStartDay === 1) return isoDateToDisplay(start.slice(0, 7));
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(s.getFullYear(), s.getMonth() + 1, s.getDate() - 1);
+    const dm = (d) => d.getDate() + ' ' + monthShortName(d.getMonth()).replace(/\.$/, '');
+    return dm(s) + ' – ' + dm(e);
+  }
+
+  function getHistoryLabel(range, date) {
+    if (range === 'day') return t('history_view_day', { date: isoDateToDisplay(date) });
+    if (range === 'month') return t('history_view_month', { date: monthLabel(date) });
+    return t('history_view_year', { date: date.slice(0, 4) });
+  }
+
+  function drawArea(ctx, plot, buckets, key, color, yMin, yMax, zeroY) {
+    const pts = [];
+    for (let i = 0; i < buckets.length; i++) {
+      const v = buckets[i][key];
+      if (v == null || !Number.isFinite(v)) continue;
+      pts.push({
+        x: plot.x + (i / Math.max(1, buckets.length - 1)) * plot.w,
+        y: plot.y + (1 - ((v - yMin) / Math.max(1e-9, yMax - yMin))) * plot.h,
+      });
+    }
+    if (!pts.length) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, zeroY);
+    for (const p of pts) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(pts[pts.length - 1].x, zeroY);
+    ctx.closePath();
+    ctx.save();
+    ctx.globalAlpha = 0.13;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // drawBand fills between key_min and key_max (hour and day buckets of a
+  // voltage or current), so peaks show behind the average line.
+  function drawBand(ctx, plot, buckets, key, color, yMin, yMax) {
+    const xy = (i, v) => [plot.x + (i / Math.max(1, buckets.length - 1)) * plot.w,
+                          plot.y + (1 - ((v - yMin) / Math.max(1e-9, yMax - yMin))) * plot.h];
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = color;
+    let run = [];
+    const flush = () => {
+      if (run.length > 1) {
+        ctx.beginPath();
+        run.forEach(([i, lo], n) => { const [x, y] = xy(i, lo); n ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+        for (let n = run.length - 1; n >= 0; n--) { const [x, y] = xy(run[n][0], run[n][2]); ctx.lineTo(x, y); }
+        ctx.closePath();
+        ctx.fill();
+      }
+      run = [];
+    };
+    for (let i = 0; i < buckets.length; i++) {
+      const lo = buckets[i][key + '_min'], hi = buckets[i][key + '_max'];
+      if (lo == null || hi == null) { flush(); continue; }
+      run.push([i, lo, hi]);
+    }
+    flush();
+    ctx.restore();
+  }
+
+  // drawSeries: a voltage or power solid, a current dashed, a frequency
+  // dotted.
+  function drawSeries(ctx, plot, buckets, key, color, yMin, yMax, unit) {
+    let started = false;
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = unit === 'A' || unit === 'Hz' ? 1 : 0.8;
+    ctx.setLineDash(unit === 'A' ? [4, 3] : unit === 'Hz' ? [1.5, 2.5] : []);
+    for (let i = 0; i < buckets.length; i++) {
+      const v = buckets[i][key];
+      if (v == null || Number.isNaN(v)) {
+        started = false;
+        continue;
+      }
+      const x = plot.x + (i / Math.max(1, buckets.length - 1)) * plot.w;
+      const y = plot.y + (1 - ((v - yMin) / Math.max(1e-9, yMax - yMin))) * plot.h;
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // niceScale: a [min, max] around lo..hi on round steps, for a V, A or Hz
+  // axis. Hz spans at least 0.4 (49.8-50.2), so a grid's usual hundredths
+  // look calm and a real excursion stands out.
+  function niceScale(lo, hi, unit) {
+    if (unit === 'A') lo = Math.min(0, lo);
+    let span = hi - lo;
+    const minSpan = unit === 'V' ? 4 : unit === 'Hz' ? 0.4 : 1;
+    if (span < minSpan) { const mid = (hi + lo) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; span = minSpan; }
+    const raw = span / 4;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => st >= raw);
+    // (The epsilon keeps 49.8 / 0.1 from flooring to 497.)
+    let yMin = Math.floor(lo / step + 1e-9) * step, yMax = Math.ceil(hi / step - 1e-9) * step;
+    if (unit === 'A' && lo >= 0) yMin = Math.max(0, yMin);
+    if (yMax === yMin) yMax = yMin + step;
+    return { yMin, yMax };
+  }
+
+  function drawXLabels(ctx, plot, buckets, range) {
+    if (!buckets || !buckets.length) return;
+    const labelY = plot.y + plot.h + 14;
+    const minSpacing = range === 'year' ? 26 : range === 'month' ? 18 : 34;
+    let lastX = -Infinity;
+
+    for (let i = 0; i < buckets.length; i++) {
+      const b = buckets[i];
+      if (!b.ts) continue;
+      const ms = typeof b.ts === 'number' ? (b.ts < 1e12 ? b.ts * 1000 : b.ts) : Number(new Date(b.ts));
+      if (isNaN(ms)) continue;
+      const d = new Date(ms);
+
+      let label = null;
+      if (range === 'day') {
+        if (d.getMinutes() === 0 && d.getHours() % 2 === 0)
+          label = String(d.getHours()).padStart(2, '0') + 'h';
+      } else if (range === 'month') {
+        if (d.getHours() === 0)
+          label = d.getDate().toString();
+      } else {
+        if (d.getDate() === 1)
+          label = monthShortName(d.getMonth());
+      }
+      if (!label) continue;
+
+      const x = plot.x + (i / Math.max(1, buckets.length - 1)) * plot.w;
+      if (x - lastX < minSpacing) continue;
+
+      ctx.strokeStyle = TC('rgba(161,161,170,0.2)', 'rgba(82,82,91,0.25)');
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, plot.y + plot.h + 1);
+      ctx.lineTo(x, plot.y + plot.h + 5);
+      ctx.stroke();
+
+      ctx.fillStyle = TC('#64748b', '#71717a');
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, labelY);
+      lastX = x;
+    }
+    ctx.textAlign = 'left';
+  }
+
+  function drawHistoryChart(allBuckets) {
+    const canvas = $('history-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    chartState.allBuckets = allBuckets || [];
+
+    // Apply zoom window
+    const total = allBuckets ? allBuckets.length : 0;
+    const zEnd = zoomState.end < 0 ? total - 1 : Math.min(zoomState.end, total - 1);
+    const buckets = total > 0 ? allBuckets.slice(zoomState.start, zEnd + 1) : [];
+    const isZoomed = zoomState.start > 0 || (zoomState.end >= 0 && zoomState.end < total - 1);
+
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth || 900;
+    const cssH = canvas.clientHeight || 220;
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.fillStyle = TC('#0a0a0b', '#fafafa');
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    if (!buckets || buckets.length === 0) {
+      chartState.snapshot = null; chartState.plot = null;
+      ctx.fillStyle = TC('#a1a1aa', '#52525b');
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText(t('chart_no_data'), 14, 24);
+      return;
+    }
+
+    const series = viewSeries().filter(sr => chartVisible[sr.key]);
+    // Per unit: every visible value (and its band) sets that axis's range.
+    const ranges = {};
+    for (const sr of series) {
+      for (const b of buckets) {
+        for (const k of [sr.key, sr.key + '_min', sr.key + '_max']) {
+          const v = b[k];
+          if (v == null || !Number.isFinite(v)) continue;
+          const r = ranges[sr.unit] || (ranges[sr.unit] = { lo: v, hi: v });
+          if (v < r.lo) r.lo = v;
+          if (v > r.hi) r.hi = v;
+        }
+      }
+    }
+    if (!Object.keys(ranges).length) {
+      chartState.snapshot = null; chartState.plot = null;
+      ctx.fillStyle = TC('#a1a1aa', '#52525b');
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText(t('chart_no_valid'), 14, 24);
+      return;
+    }
+
+    // Power: one axis, symmetric around 0 (W). V and A: V on the left, A
+    // on the right (or alone on the left), each fitted to its values. Hz
+    // takes a side left free, else has no axis: the tooltip reads it.
+    const scales = {};
+    if (ranges.W) {
+      const absMax = Math.max(100, Math.abs(ranges.W.lo), Math.abs(ranges.W.hi));
+      const yMax = Math.ceil(absMax / 100) * 100;
+      scales.W = { yMin: -yMax, yMax };
+    }
+    for (const u of ['V', 'A', 'Hz']) if (ranges[u]) scales[u] = niceScale(ranges[u].lo, ranges[u].hi, u);
+    const leftUnit = scales.W ? 'W' : scales.V ? 'V' : scales.A ? 'A' : 'Hz';
+    const rightUnit = leftUnit === 'V' && scales.A ? 'A'
+      : (leftUnit === 'V' || leftUnit === 'A') && scales.Hz ? 'Hz' : null;
+    const plot = { x: 44, y: 10, w: cssW - 56 - (rightUnit ? 34 : 0), h: cssH - 46 };
+
+    ctx.strokeStyle = TC('rgba(161,161,170,0.18)', 'rgba(82,82,91,0.14)');
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = plot.y + (i / 4) * plot.h;
+      ctx.beginPath();
+      ctx.moveTo(plot.x, y);
+      ctx.lineTo(plot.x + plot.w, y);
+      ctx.stroke();
+    }
+
+    const { yMin, yMax } = scales[leftUnit];
+    ctx.fillStyle = TC('#a1a1aa', '#52525b');
+    ctx.font = '11px system-ui, sans-serif';
+    if (leftUnit === 'W') {
+      const zeroY = plot.y + (1 - ((0 - yMin) / (yMax - yMin))) * plot.h;
+      ctx.strokeStyle = TC('rgba(161,161,170,0.45)', 'rgba(82,82,91,0.4)');
+      ctx.beginPath();
+      ctx.moveTo(plot.x, zeroY);
+      ctx.lineTo(plot.x + plot.w, zeroY);
+      ctx.stroke();
+      ctx.fillText(fmt(yMax) + 'W', 4, plot.y + 10);
+      ctx.fillText('0W', 12, zeroY + 4);
+      ctx.fillText('-' + fmt(yMax) + 'W', 2, plot.y + plot.h - 2);
+    } else {
+      // Top, middle and bottom of each axis, labelled in its unit.
+      const axisLabels = (unit, x, align) => {
+        const sc = scales[unit];
+        const dec = unit === 'Hz' ? 2 : sc.yMax - sc.yMin < 10 ? 1 : 0;
+        // "50.20" with Hz after it wouldn't fit the margin: the legend
+        // names the unit.
+        const suffix = unit === 'Hz' ? '' : unit;
+        ctx.textAlign = align;
+        [[sc.yMax, plot.y + 10], [(sc.yMax + sc.yMin) / 2, plot.y + plot.h / 2 + 4], [sc.yMin, plot.y + plot.h - 2]]
+          .forEach(([v, y]) => ctx.fillText(fmt(v, dec) + suffix, x, y));
+        ctx.textAlign = 'left';
+      };
+      axisLabels(leftUnit, plot.x - 4, 'right');
+      if (rightUnit) axisLabels(rightUnit, plot.x + plot.w + 4, 'left');
+    }
+
+    for (const sr of series) {
+      const sc = scales[sr.unit];
+      drawBand(ctx, plot, buckets, sr.key, SC(sr.color), sc.yMin, sc.yMax);
+      drawSeries(ctx, plot, buckets, sr.key, SC(sr.color), sc.yMin, sc.yMax, sr.unit);
+    }
+
+    drawXLabels(ctx, plot, buckets, historyState.range);
+
+    if (isZoomed) {
+      ctx.fillStyle = TC('rgba(161,161,170,0.5)', 'rgba(82,82,91,0.6)');
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(t('chart_zoom_hint'), plot.x + plot.w, plot.y + 12);
+      ctx.textAlign = 'left';
+    }
+
+    chartState.plot = plot; chartState.scales = scales;
+    chartState.buckets = buckets; chartState.dpr = dpr; chartState.cssW = cssW;
+    chartState.snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  function normalizeBuckets(raw) {
+    return (raw || []).map((b) => {
+      const out = { ts: b.ts };
+      for (const k in b) if (k !== 'ts') out[k] = b[k] == null ? null : Number(b[k]);
+      return out;
+    });
+  }
+
+  // ── Chart export: the CSV of what the chart shows ────────
+  // The whole period (day, month, year) or, when zoomed, from the first
+  // shown bucket to the one after the last. Same format choice as Settings.
+  function chartExportWindow() {
+    const all = historyState.buckets;
+    const secs = (v) => Math.floor(Date.parse(v) / 1000);
+    let start = secs(historyState.start);
+    let end = secs(historyState.end);
+    if (all.length && (zoomState.start > 0 || zoomState.end >= 0)) {
+      const zEnd = zoomState.end < 0 ? all.length - 1 : Math.min(zoomState.end, all.length - 1);
+      start = secs(all[zoomState.start].ts);
+      if (zEnd + 1 < all.length) end = secs(all[zEnd + 1].ts);
+    }
+    return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null;
+  }
+
+  $('chart-export-btn').addEventListener('click', async () => {
+    const btn = $('chart-export-btn');
+    const status = $('history-status');
+    const win = chartExportWindow();
+    if (!win) return;
+    let format = null;
+    try { format = localStorage.getItem('solastat_csv_format'); } catch (_) {}
+    const params = new URLSearchParams({
+      start: win.start, end: win.end,
+      format: format || (lang === 'en' ? 'standard' : 'excel'),
+    });
+    const before = status.textContent;
+    status.textContent = t('msg_exporting');
+    btn.disabled = true;
+    try {
+      const r = await fetch(apiBase + '/api/history/export.csv?' + params);
+      if (!r.ok) {
+        const d = await parseJsonOrThrow(r);
+        throw new Error(d.error || 'HTTP ' + r.status);
+      }
+      const blob = await r.blob();
+      const match = /filename="([^"]+)"/.exec(r.headers.get('content-disposition') || '');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = match ? match[1] : 'solastat.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      status.textContent = before;
+    } catch (e) {
+      status.textContent = t('err_generic', { msg: e.message });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Shown only when the active inverter can be restarted from here.
+  fetch(apiBase + '/api/inverter/restart')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && d.supported) $('inverter-restart-btn').hidden = false; })
+    .catch(() => {});
+
+  $('inverter-restart-btn').addEventListener('click', async () => {
+    const ok = await window.solastatNav.confirm({
+      title: t('inverter_restart_confirm_title'),
+      message: t('inverter_restart_confirm'),
+      okLabel: t('btn_inverter_restart_confirm'),
+      destructive: true,
+    });
+    if (!ok) return;
+    const btn = $('inverter-restart-btn');
+    const status = $('history-status');
+    btn.disabled = true;
+    try {
+      const r = await fetch(apiBase + '/api/inverter/restart', { method: 'POST' });
+      const d = await parseJsonOrThrow(r);
+      if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+      status.textContent = t('msg_inverter_restart_sent');
+    } catch (e) {
+      status.textContent = t('err_generic', { msg: e.message });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  function setupHistoryAutoRefresh() {
+    if (historyState.timer) clearInterval(historyState.timer);
+    let lastToday = toDateInputValue(new Date());
+    historyState.timer = setInterval(() => {
+      const today = toDateInputValue(new Date());
+      if (today !== lastToday && historyState.date === lastToday) {
+        // Midnight while showing today: follow the new day (a page left
+        // open, like the kiosk, would otherwise stay on yesterday).
+        historyState.date = today;
+        updateDateDisplay();
+        loadHistory();
+        loadTotals();
+      } else if (historyState.range === 'day' && historyState.date === today && !document.hidden) {
+        loadHistory();
+      }
+      lastToday = today;
+    }, 60000);
+  }
+
+  // renderChartView shows the view tabs the readings allow (none when only
+  // Power does), the active view's legend, and its stats.
+  function renderChartView() {
+    const avail = { power: true, ac: viewSeries('ac').length > 0, dc: viewSeries('dc').length > 0 };
+    shownView = avail[chartView] ? chartView : 'power';
+    $('vtabs').hidden = !avail.ac && !avail.dc;
+    document.querySelectorAll('.vtab').forEach(b => {
+      b.hidden = !avail[b.dataset.view];
+      b.classList.toggle('active', b.dataset.view === shownView);
+    });
+    const legend = $('history-legend');
+    legend.innerHTML = '';
+    for (const sr of viewSeries()) {
+      const b = document.createElement('button');
+      b.className = 'series-toggle' + (chartVisible[sr.key] ? ' active' : '') + (sr.unit === 'A' ? ' dashed' : sr.unit === 'Hz' ? ' dotted' : '');
+      b.dataset.key = sr.key;
+      b.style.setProperty('--sc', SC(sr.color));
+      b.textContent = sr.label();
+      legend.appendChild(b);
+    }
+    $('pstats').hidden = shownView !== 'power';
+    $('vstats').hidden = shownView === 'power';
+    renderViewStats();
+  }
+
+  // renderViewStats: AC/DC's stat cards, one per shown series: the average
+  // over the period, with its lowest and highest minute. A PV string's
+  // count only while it produces: its nights at 0 would halve the average.
+  function renderViewStats() {
+    const box = $('vstats');
+    if (shownView === 'power') return;
+    box.innerHTML = '';
+    for (const sr of viewSeries().filter(x => chartVisible[x.key])) {
+      let sum = 0, n = 0, lo = Infinity, hi = -Infinity;
+      for (const b of historyState.buckets) {
+        const v = b[sr.key];
+        if (v == null || !Number.isFinite(v) || (sr.producing && v <= 0)) continue;
+        sum += v; n++;
+        const bmin = b[sr.key + '_min'];
+        lo = Math.min(lo, bmin != null && !(sr.producing && bmin <= 0) ? bmin : v);
+        hi = Math.max(hi, b[sr.key + '_max'] ?? v);
+      }
+      const el = document.createElement('div');
+      el.className = 'stat';
+      const lbl = document.createElement('div');
+      lbl.className = 'stat-lbl';
+      lbl.style.color = SC(sr.color);
+      if (sr.unit === 'Hz') lbl.style.textTransform = 'none'; // a unit, not "HZ"
+      lbl.textContent = sr.label();
+      const val = document.createElement('div');
+      val.innerHTML = '<span class="stat-val"></span><span class="stat-unit"></span>';
+      val.firstChild.style.color = SC(sr.color);
+      const dec = unitDec(sr.unit);
+      val.firstChild.textContent = n ? fmt(sum / n, dec) : '--';
+      val.lastChild.textContent = sr.unit;
+      const range = document.createElement('div');
+      range.className = 'vstat-range';
+      range.textContent = n ? t('vstat_range', { min: fmt(lo, dec), max: fmt(hi, dec) }) : '';
+      el.append(lbl, val, range);
+      box.appendChild(el);
+    }
+  }
+
+  function loadHistory() {
+    resetZoom();
+    const status = $('history-status');
+    status.textContent = t('history_loading');
+    fetch(`${API.history}?range=${encodeURIComponent(historyState.range)}&date=${encodeURIComponent(historyState.date)}`)
+      .then((r) => {
+        if (!r.ok) {
+          return parseJsonOrThrow(r).then((d) => {
+            throw new Error(d.error || ('HTTP ' + r.status));
+          });
+        }
+        return parseJsonOrThrow(r);
+      })
+      .then((res) => {
+        const buckets = normalizeBuckets(res.buckets);
+        historyState.buckets = buckets;
+        historyState.start = res.start; historyState.end = res.end;
+        drawHistoryChart(buckets);
+        renderViewStats();
+        status.textContent = `${getHistoryLabel(historyState.range, historyState.date)} · ${t('history_points_suffix', { count: buckets.length })}`;
+      })
+      .catch((err) => {
+        drawHistoryChart([]);
+        status.textContent = t('history_error', { msg: err.message });
+      });
+  }
+
+  let pickerViewDate = null;
+
+  function updateDateDisplay() {
+    const d = historyState.date;
+    const range = historyState.range;
+    $('date-display').textContent =
+      range === 'day'   ? isoDateToDisplay(d) :
+      range === 'month' ? monthLabel(d) :
+                          d.slice(0, 4);
+    const today = toDateInputValue(new Date());
+    const atOrPastToday =
+      range === 'day'   ? d >= today :
+      range === 'month' ? cycleStart(d) >= cycleStart(today) :
+                          d.slice(0, 4) >= today.slice(0, 4);
+    $('btn-date-next').disabled = atOrPastToday;
+  }
+
+  function navigateDate(dir) {
+    const range = historyState.range;
+    const cur = new Date((range === 'month' ? cycleStart(historyState.date) : historyState.date) + 'T00:00:00');
+    if (range === 'day')        cur.setDate(cur.getDate() + dir);
+    else if (range === 'month') cur.setMonth(cur.getMonth() + dir);
+    else                        cur.setFullYear(cur.getFullYear() + dir);
+    historyState.date = toDateInputValue(cur);
+    updateDateDisplay();
+    loadHistory();
+    loadTotals();
+  }
+
+  function renderDatePicker() {
+    const range = historyState.range;
+    const today = toDateInputValue(new Date());
+    const selected = historyState.date;
+    const view = new Date(pickerViewDate + 'T00:00:00');
+    const title = $('dp-title');
+    const grid = $('dp-grid');
+    grid.innerHTML = '';
+    $('dp-cycle').classList.toggle('show', range === 'month');
+    $('dp-cycle-day').value = String(historyState.monthStartDay);
+
+    if (range === 'day') {
+      title.textContent = view.toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+      grid.className = 'dp-grid dp-days';
+      for (let dow = 0; dow < 7; dow++) {
+        const el = document.createElement('span');
+        el.className = 'dp-dow';
+        el.textContent = weekdayNarrowName(dow);
+        grid.appendChild(el);
+      }
+      const first = new Date(view.getFullYear(), view.getMonth(), 1);
+      const last  = new Date(view.getFullYear(), view.getMonth() + 1, 0);
+      for (let i = 0; i < first.getDay(); i++) {
+        const el = document.createElement('span');
+        el.className = 'dp-cell empty';
+        grid.appendChild(el);
+      }
+      for (let d = 1; d <= last.getDate(); d++) {
+        const iso = `${view.getFullYear()}-${String(view.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const el = document.createElement('button');
+        el.className = 'dp-cell' + (iso === selected ? ' selected' : '') + (iso === today ? ' today' : '');
+        if (iso > today) el.disabled = true;
+        el.textContent = d;
+        el.addEventListener('click', () => { historyState.date = iso; updateDateDisplay(); loadHistory(); loadTotals(); closeDatePicker(); });
+        grid.appendChild(el);
+      }
+    } else if (range === 'month') {
+      title.textContent = view.getFullYear();
+      grid.className = 'dp-grid dp-months';
+      const todayM = cycleStart(today).slice(0, 7);
+      const selM   = cycleStart(selected).slice(0, 7);
+      const sd     = String(historyState.monthStartDay).padStart(2, '0');
+      for (let m = 0; m < 12; m++) {
+        const iso  = `${view.getFullYear()}-${String(m+1).padStart(2,'0')}-${sd}`;
+        const key  = iso.slice(0, 7);
+        const el   = document.createElement('button');
+        el.className = 'dp-cell' + (key === selM ? ' selected' : '') + (key === todayM ? ' today' : '');
+        if (key > todayM) el.disabled = true;
+        el.textContent = monthShortName(m);
+        el.addEventListener('click', () => { historyState.date = iso; updateDateDisplay(); loadHistory(); loadTotals(); closeDatePicker(); });
+        grid.appendChild(el);
+      }
+    } else {
+      const decade = Math.floor(view.getFullYear() / 10) * 10;
+      title.textContent = `${decade} – ${decade + 9}`;
+      grid.className = 'dp-grid dp-years';
+      const todayY = today.slice(0, 4);
+      const selY   = selected.slice(0, 4);
+      for (let y = decade; y <= decade + 9; y++) {
+        const iso = `${y}-01-01`;
+        const el  = document.createElement('button');
+        el.className = 'dp-cell' + (String(y) === selY ? ' selected' : '') + (String(y) === todayY ? ' today' : '');
+        if (y > parseInt(todayY)) el.disabled = true;
+        el.textContent = y;
+        el.addEventListener('click', () => { historyState.date = iso; updateDateDisplay(); loadHistory(); loadTotals(); closeDatePicker(); });
+        grid.appendChild(el);
+      }
+    }
+  }
+
+  function pickerNavigate(dir) {
+    const range = historyState.range;
+    const cur = new Date(pickerViewDate + 'T00:00:00');
+    if (range === 'day')        cur.setMonth(cur.getMonth() + dir);
+    else if (range === 'month') cur.setFullYear(cur.getFullYear() + dir);
+    else                        cur.setFullYear(cur.getFullYear() + dir * 10);
+    pickerViewDate = toDateInputValue(cur);
+    renderDatePicker();
+  }
+
+  function openDatePicker() {
+    pickerViewDate = historyState.date;
+    renderDatePicker();
+    $('date-picker').classList.add('open');
+  }
+
+  function closeDatePicker() {
+    $('date-picker').classList.remove('open');
+  }
+
+  function initHistory() {
+    const today = toDateInputValue(new Date());
+    historyState.date = today;
+    historyState.range = 'day';
+    updateDateDisplay();
+
+    $('btn-date-prev').addEventListener('click', () => navigateDate(-1));
+    $('btn-date-next').addEventListener('click', () => navigateDate(1));
+    $('date-display').addEventListener('click', (e) => { e.stopPropagation(); $('date-picker').classList.contains('open') ? closeDatePicker() : openDatePicker(); });
+    $('dp-prev').addEventListener('click', () => pickerNavigate(-1));
+    $('dp-next').addEventListener('click', () => pickerNavigate(1));
+    const cycleSel = $('dp-cycle-day');
+    for (let d = 1; d <= 28; d++) cycleSel.add(new Option(String(d), String(d)));
+    cycleSel.addEventListener('change', async () => {
+      const prev = historyState.monthStartDay;
+      const day = parseInt(cycleSel.value, 10);
+      try {
+        const r = await fetch(API.monthStart, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ day }),
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+      } catch (e) {
+        cycleSel.value = String(prev);
+        $('history-status').textContent = t('err_generic', { msg: e.message });
+        return;
+      }
+      // Keep the month shown (its name), now starting on the new day.
+      const today = toDateInputValue(new Date());
+      const month = cycleStart(historyState.date).slice(0, 7);
+      historyState.monthStartDay = day;
+      const next = `${month}-${String(day).padStart(2, '0')}`;
+      historyState.date = next > today ? today : next;
+      updateDateDisplay();
+      renderDatePicker();
+      loadHistory();
+      loadTotals();
+    });
+    fetch(API.monthStart)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || !d.day || d.day === historyState.monthStartDay) return;
+        historyState.monthStartDay = d.day;
+        updateDateDisplay();
+      })
+      .catch(() => {});
+    $('dp-today').addEventListener('click', () => { historyState.date = toDateInputValue(new Date()); updateDateDisplay(); loadHistory(); loadTotals(); closeDatePicker(); });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.date-nav-wrap')) closeDatePicker(); });
+
+    document.querySelectorAll('.atab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        historyState.range = btn.dataset.period;
+        resetZoom();
+        closeDatePicker();
+        updateDateDisplay();
+        loadHistory();
+        loadTotals();
+      });
+    });
+
+    window.addEventListener('resize', () => drawHistoryChart(historyState.buckets));
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { loadHistory(); loadTotals(); }
+    });
+
+    $('history-legend').addEventListener('click', (e) => {
+      const btn = e.target.closest('.series-toggle');
+      if (!btn) return;
+      const key = btn.dataset.key;
+      chartVisible[key] = !chartVisible[key];
+      btn.classList.toggle('active', chartVisible[key]);
+      try { localStorage.setItem('solastat_chart_series', JSON.stringify(chartVisible)); } catch (_) {}
+      drawHistoryChart(historyState.buckets);
+      renderViewStats();
+    });
+    document.querySelectorAll('.vtab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chartView = btn.dataset.view;
+        try { localStorage.setItem('solastat_chart_view', chartView); } catch (_) {}
+        renderChartView();
+        drawHistoryChart(historyState.buckets);
+      });
+    });
+    renderChartView();
+
+    setupHistoryAutoRefresh();
+    loadHistory();
+    initChartHover();
+  }
+
+  function drawHoverOverlay(cssX) {
+    const { plot, snapshot, buckets, dpr, scales } = chartState;
+    if (!plot || !snapshot || !buckets.length) return;
+    const ctx = $('history-canvas').getContext('2d', { willReadFrequently: true });
+    ctx.putImageData(snapshot, 0, 0);
+    if (cssX < plot.x || cssX > plot.x + plot.w) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const frac = Math.max(0, Math.min(1, (cssX - plot.x) / plot.w));
+    const idx = Math.round(frac * (buckets.length - 1));
+    const bucket = buckets[idx];
+    if (!bucket) return;
+    const x = plot.x + (idx / Math.max(1, buckets.length - 1)) * plot.w;
+    ctx.save();
+    ctx.strokeStyle = TC('rgba(161,161,170,0.3)', 'rgba(82,82,91,0.35)');
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, plot.y); ctx.lineTo(x, plot.y + plot.h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    for (const s of viewSeries()) {
+      const v = bucket[s.key];
+      if (!chartVisible[s.key] || v == null || !Number.isFinite(v) || !scales[s.unit]) continue;
+      const { yMin, yMax } = scales[s.unit];
+      const y = plot.y + (1 - ((v - yMin) / Math.max(1e-9, yMax - yMin))) * plot.h;
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = SC(s.color); ctx.fill();
+      ctx.strokeStyle = TC('#0a0a0b', '#fafafa'); ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    drawTooltip(ctx, x, bucket, plot, historyState.range);
+  }
+
+  function initChartHover() {
+    const canvas = $('history-canvas');
+    canvas.style.cursor = 'crosshair';
+
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragSnapStart = 0, dragSnapEnd = -1;
+    let touchStartDist = 0, touchSnapStart = 0, touchSnapEnd = -1, touchSnapCenter = 0;
+
+    // ── Wheel zoom ──────────────────────────────────────────
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const all = chartState.allBuckets;
+      if (!all.length || !chartState.plot) return;
+      const total = all.length;
+      const curEnd = zoomState.end < 0 ? total - 1 : zoomState.end;
+      const curRange = curEnd - zoomState.start + 1;
+      const rect = canvas.getBoundingClientRect();
+      const frac = Math.max(0, Math.min(1, (e.clientX - rect.left - chartState.plot.x) / chartState.plot.w));
+      const factor = e.deltaY > 0 ? 1.35 : 1 / 1.35;
+      const newRange = Math.max(10, Math.min(total, Math.round(curRange * factor)));
+      const center = zoomState.start + frac * (curRange - 1);
+      let ns = Math.round(center - frac * (newRange - 1));
+      let ne = ns + newRange - 1;
+      if (ns < 0) { ns = 0; ne = newRange - 1; }
+      if (ne >= total) { ne = total - 1; ns = Math.max(0, ne - newRange + 1); }
+      zoomState.start = ns;
+      zoomState.end = ne >= total - 1 ? -1 : ne;
+      drawHistoryChart(all);
+    }, { passive: false });
+
+    // ── Double-click reset ──────────────────────────────────
+    canvas.addEventListener('dblclick', () => {
+      resetZoom();
+      drawHistoryChart(chartState.allBuckets);
+    });
+
+    // ── Mouse drag pan ──────────────────────────────────────
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragSnapStart = zoomState.start;
+      dragSnapEnd   = zoomState.end;
+      canvas.style.cursor = 'grabbing';
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cssX = e.clientX - rect.left;
+      if (isDragging) {
+        const all = chartState.allBuckets;
+        if (!all.length || !chartState.plot) return;
+        const total = all.length;
+        const snapEnd = dragSnapEnd < 0 ? total - 1 : dragSnapEnd;
+        const range = snapEnd - dragSnapStart;
+        const shift = Math.round(-(e.clientX - dragStartX) * range / chartState.plot.w);
+        let ns = dragSnapStart + shift, ne = ns + range;
+        if (ns < 0) { ns = 0; ne = range; }
+        if (ne >= total) { ne = total - 1; ns = Math.max(0, ne - range); }
+        zoomState.start = ns;
+        zoomState.end = ne >= total - 1 ? -1 : ne;
+        drawHistoryChart(all);
+      } else {
+        drawHoverOverlay(cssX);
+      }
+    });
+
+    canvas.addEventListener('mouseup',    () => { isDragging = false; canvas.style.cursor = 'crosshair'; });
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+      canvas.style.cursor = 'crosshair';
+      const { snapshot } = chartState;
+      if (snapshot) $('history-canvas').getContext('2d', { willReadFrequently: true }).putImageData(snapshot, 0, 0);
+    });
+
+    // ── Touch: tap = tooltip fixo, swipe = pan, pinch = zoom ─
+    let touchMoved = false;
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        touchMoved    = false;
+        dragStartX    = e.touches[0].clientX;
+        dragSnapStart = zoomState.start;
+        dragSnapEnd   = zoomState.end;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        touchMoved = true;
+        const dx = e.touches[1].clientX - e.touches[0].clientX;
+        touchStartDist = Math.abs(dx);
+        touchSnapStart = zoomState.start;
+        touchSnapEnd   = zoomState.end;
+        const all = chartState.allBuckets;
+        const total = all.length;
+        const snapEnd = touchSnapEnd < 0 ? total - 1 : touchSnapEnd;
+        const rect = canvas.getBoundingClientRect();
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const frac  = Math.max(0, Math.min(1, (midX - rect.left - (chartState.plot?.x || 0)) / (chartState.plot?.w || 1)));
+        touchSnapCenter = touchSnapStart + frac * (snapEnd - touchSnapStart);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const all = chartState.allBuckets;
+      if (!all.length || !chartState.plot) return;
+      const total = all.length;
+      if (e.touches.length === 1) {
+        const dx = Math.abs(e.touches[0].clientX - dragStartX);
+        if (dx > 8) touchMoved = true;
+        if (touchMoved) {
+          // pan
+          const snapEnd = dragSnapEnd < 0 ? total - 1 : dragSnapEnd;
+          const range = snapEnd - dragSnapStart;
+          const shift = Math.round(-(e.touches[0].clientX - dragStartX) * range / chartState.plot.w);
+          let ns = dragSnapStart + shift, ne = ns + range;
+          if (ns < 0) { ns = 0; ne = range; }
+          if (ne >= total) { ne = total - 1; ns = Math.max(0, ne - range); }
+          zoomState.start = ns;
+          zoomState.end = ne >= total - 1 ? -1 : ne;
+          drawHistoryChart(all);
+        } else {
+          // preview tooltip while holding still
+          const rect = canvas.getBoundingClientRect();
+          drawHoverOverlay(e.touches[0].clientX - rect.left);
+        }
+      } else if (e.touches.length === 2) {
+        const dist = Math.abs(e.touches[1].clientX - e.touches[0].clientX);
+        const snapEnd = touchSnapEnd < 0 ? total - 1 : touchSnapEnd;
+        const snapRange = snapEnd - touchSnapStart + 1;
+        const newRange = Math.max(10, Math.min(total, Math.round(snapRange * touchStartDist / Math.max(1, dist))));
+        const rect = canvas.getBoundingClientRect();
+        const midX  = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const frac   = Math.max(0, Math.min(1, (midX - rect.left - chartState.plot.x) / chartState.plot.w));
+        let ns = Math.round(touchSnapCenter - frac * (newRange - 1));
+        let ne = ns + newRange - 1;
+        if (ns < 0) { ns = 0; ne = newRange - 1; }
+        if (ne >= total) { ne = total - 1; ns = Math.max(0, ne - newRange + 1); }
+        zoomState.start = ns;
+        zoomState.end = ne >= total - 1 ? -1 : ne;
+        drawHistoryChart(all);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (!touchMoved && e.changedTouches.length === 1) {
+        // tap: pin tooltip at this position
+        const rect = canvas.getBoundingClientRect();
+        drawHoverOverlay(e.changedTouches[0].clientX - rect.left);
+      } else if (touchMoved && chartState.snapshot) {
+        // swipe ended: restore clean chart
+        $('history-canvas').getContext('2d', { willReadFrequently: true }).putImageData(chartState.snapshot, 0, 0);
+      }
+      isDragging  = false;
+      touchMoved  = false;
+    });
+  }
+
+  // ── Flow line animation ───────────────────────────────────
+  // 'fwd' = power flows in forward direction (source → sink along the drawn line)
+  // 'rev' = reverse direction
+  function setLine(id, state) {  // state: 'fwd' | 'rev' | 'off'
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove('fwd', 'rev');
+    if (state === 'fwd' || state === 'rev') el.classList.add(state);
+  }
+
+  // Toggles a node's glow pulse — same on/off thresholds as the connecting
+  // line into/out of it, so a node only ever looks "alive" while power is
+  // actually moving through it.
+  function setNodeActive(prefix, active) {
+    $(`node-${prefix}-glow`)?.classList.toggle('active', active);
+  }
+
+  const flowState = {
+    lastTs: 0,
+    progress: { solar: 0, battery: 0, grid: 0 },
+    latest: { solarW: 0, battW: 0, gridW: 0 },
+  };
+
+  function speedFromPower(power, threshold) {
+    const p = Math.abs(Number(power || 0));
+    if (p <= threshold) return 0;
+    const norm = Math.min(p, 5000) / 5000;
+    return 0.22 + norm * 1.5; // cycles/second
+  }
+
+  function setParticle(id, x1, y1, x2, y2, t, opacity, r) {
+    const el = $(id);
+    if (!el) return;
+    el.setAttribute('cx', (x1 + (x2 - x1) * t).toFixed(2));
+    el.setAttribute('cy', (y1 + (y2 - y1) * t).toFixed(2));
+    el.setAttribute('r', r.toFixed(2));
+    el.style.opacity = opacity > 0 ? String(opacity) : '0';
+  }
+
+  function particleCountFromPower(power, threshold) {
+    const p = Math.abs(Number(power || 0));
+    if (p <= threshold) return 0;
+    if (p <= threshold * 6) return 1;
+    if (p <= threshold * 16) return 2;
+    return 3;
+  }
+
+  function renderFlowParticles(prefix, x1, y1, x2, y2, progress, count, reverse) {
+    const offsets = [0, 0.33, 0.66];
+    for (let i = 0; i < 3; i++) {
+      const id = `${prefix}-${i + 1}`;
+      if (i >= count) {
+        setParticle(id, x1, y1, x2, y2, 0, 0, i === 0 ? 3.4 : 2.7);
+        continue;
+      }
+      let t = (progress + offsets[i]) % 1;
+      if (reverse) t = 1 - t;
+      const opacity = i === 0 ? 0.95 : (i === 1 ? 0.7 : 0.45);
+      const tStart = reverse ? 1 - t : t;
+      const r = i === 0 ? 3.4 + (1 - tStart) * 5 : 2.7 + (1 - tStart) * 1.5;
+      setParticle(id, x1, y1, x2, y2, t, opacity, r);
+    }
+  }
+
+  function animateFlow(ts) {
+    if (!flowState.lastTs) flowState.lastTs = ts;
+    const dt = Math.max(0, (ts - flowState.lastTs) / 1000);
+    flowState.lastTs = ts;
+
+    const { solarW, battW, gridW } = flowState.latest;
+
+    flowState.progress.solar = (flowState.progress.solar + speedFromPower(solarW, 10) * dt) % 1;
+    flowState.progress.battery = (flowState.progress.battery + speedFromPower(battW, 10) * dt) % 1;
+    flowState.progress.grid = (flowState.progress.grid + speedFromPower(gridW, 50) * dt) % 1;
+
+    const solarCount = particleCountFromPower(solarW, 10);
+    const battCount = particleCountFromPower(battW, 10);
+    const gridCount = particleCountFromPower(gridW, 50);
+
+    renderFlowParticles('pt-solar', 180, 76, 180, 126, flowState.progress.solar, solarCount, false);
+    renderFlowParticles('pt-battery', 155, 193, 96, 233, flowState.progress.battery, battCount, (battW || 0) > 0);
+    renderFlowParticles('pt-grid', 205, 193, 264, 233, flowState.progress.grid, gridCount, (gridW || 0) > 0);
+
+    requestAnimationFrame(animateFlow);
+  }
+
+  // ── SSE ──────────────────────────────────────────────────
+  function connect() {
+    const sse = new EventSource(API.events);
+
+    sse.onopen = () => {
+      $('dot').classList.add('on');
+    };
+
+    sse.onerror = () => {
+      $('dot').classList.remove('on');
+      sse.close();
+      // Short delay: these drops have been observed self-healing quickly
+      // (a relay-side connection recycle, not a real outage), so recover
+      // fast rather than leaving the dashboard visibly stale for 5s+.
+      setTimeout(connect, 2000);
+    };
+
+    sse.onmessage = (e) => {
+      try { render(JSON.parse(e.data)); } catch (_) {}
+    };
+  }
+
+
+  // Battery icon on the flow diagram: the inside fills with the state of
+  // charge (0-100 %), green, amber below 50 % and red below 20 %.
+  function setBatteryFill(soc) {
+    const pct = Math.max(0, Math.min(100, soc));
+    const fill = $('sv-batt-fill');
+    fill.setAttribute('width', (12 * pct / 100).toFixed(2)); // inner width of the 16-wide body
+    fill.setAttribute('fill', pct < 20 ? 'var(--danger)' : pct < 50 ? 'var(--warn)' : TC('#6ee7b7', '#059669'));
+  }
+
+  function render(d) {
+    lastRenderData = d;
+    const r   = d.readings || {};
+    const get = (n) => (r[n] != null ? r[n].value : null);
+    const before = seenReadings.size;
+    for (const name in r) {
+      if (/^grid_voltage_l[23]$/.test(name) && !(r[name].value > 50)) continue; // no such phase
+      seenReadings.add(name);
+    }
+    if (seenReadings.size !== before) {
+      renderChartView();
+      drawHistoryChart(historyState.buckets);
+    }
+
+    // A live SSE connection alone doesn't mean the poll cycle behind it
+    // actually succeeded — d.error means this cycle failed a Modbus read,
+    // same signal the error bar and inverter-status text below already
+    // key off of, so the dot shouldn't just default to "connected" green
+    // regardless of it.
+    const dot = $('dot');
+    dot.classList.toggle('on', !d.error);
+    dot.classList.toggle('warn', !!d.error);
+
+    // ── Live power values ─────────────────────────────────
+    const solarW = get('pv_total_power');
+    const gridW  = get('measured_power');
+    const battW  = get('battery_power');
+    const loadW  = get('total_consumption_power');
+    const soc    = get('battery_level');
+
+    if (solarW != null) $('sv-solar-w').textContent = fmt(solarW) + 'W';
+    if (loadW  != null) $('sv-load-w').textContent  = fmt(loadW)  + 'W';
+    if (soc    != null) {
+      $('sv-soc').textContent = fmt(soc) + '%';
+      setBatteryFill(soc);
+    }
+    if (battW  != null) {
+      $('sv-batt-w').textContent     = fmt(Math.abs(battW)) + 'W';
+      $('sv-batt-arrow').textContent = battW > 50 ? '↑' : battW < -50 ? '↓' : '';
+    }
+
+    if (gridW != null) {
+      $('sv-grid-w').textContent     = fmt(Math.abs(gridW)) + 'W';
+      $('sv-grid-arrow').textContent = gridW > 50 ? '↑' : gridW < -50 ? '↓' : '';
+    }
+    // Grid frequency: amber off 49.8-50.2 Hz, red off 49.5-50.5 Hz (on a
+    // 60 Hz grid, the same bands around 60).
+    const gridHz = get('grid_frequency');
+    if (gridHz != null) {
+      const off = Math.abs(gridHz - (gridHz > 55 ? 60 : 50));
+      const hz = $('sv-grid-hz');
+      hz.textContent = fmt(gridHz, 2) + ' Hz';
+      hz.setAttribute('fill', off > 0.5 ? 'var(--danger)' : off > 0.2 ? 'var(--warn)' : 'var(--muted)');
+      hz.style.display = '';
+      $('sv-grid-lbl').setAttribute('y', '277');
+    }
+
+    flowState.latest.solarW = solarW ?? 0;
+    flowState.latest.battW = battW ?? 0;
+    flowState.latest.gridW = gridW ?? 0;
+
+    // ── Animated flow lines ───────────────────────────────
+    // Solar line: always solar→home (forward when producing)
+    const solarActive = solarW > 10;
+    setLine('ln-solar', solarActive ? 'fwd' : 'off');
+    setNodeActive('solar', solarActive);
+
+    // Battery line is drawn home→battery;
+    // For this inverter profile: battery_power < 0 = charging (home→battery = fwd)
+    // battery_power > 0 = discharging (battery→home = rev)
+    const batteryActive = battW != null && Math.abs(battW) > 10;
+    if (batteryActive) {
+      setLine('ln-battery', battW < 0 ? 'fwd' : 'rev');
+    } else {
+      setLine('ln-battery', 'off');
+    }
+    setNodeActive('battery', batteryActive);
+
+    // Grid line is drawn home→grid;
+    // measured_power > 0 = import (grid→home = rev)
+    // measured_power < 0 = export (home→grid = fwd)
+    const gridActive = gridW != null && Math.abs(gridW) > 50;
+    if (gridActive) {
+      setLine('ln-grid', gridW > 0 ? 'rev' : 'fwd');
+    } else {
+      setLine('ln-grid', 'off');
+    }
+    setNodeActive('grid', gridActive);
+
+    // Home is the one node with no single "off" state of its own — it's
+    // fed by up to three lines at once, so it glows whenever there's any
+    // load at all, independent of which source is currently supplying it.
+    setNodeActive('home', loadW != null && loadW > 5);
+
+    // ── Battery health (only if register present) ─────────
+    const bhealth = get('battery_health');
+    if (bhealth != null) {
+      $('sv-bhealth').textContent = fmt(bhealth, 0) + '%';
+      $('sv-bhealth-grp').style.display = '';
+      $('sv-batt-lbl').setAttribute('y', '277');
+    }
+
+    // ── Error bar ─────────────────────────────────────────
+    const eb = $('err-bar');
+    if (d.error) {
+      eb.style.display = 'block';
+      eb.textContent   = '⚠️ ' + d.error;
+    } else {
+      eb.style.display = 'none';
+    }
+
+    // ── Status (shown after the profile name, e.g. "Swatten (OK)") ──
+    // d.error means THIS poll cycle failed a Modbus read — that always wins
+    // over the inverter's own fault status, even when its register was read
+    // fine earlier in the same (otherwise failed) cycle, so a comms error
+    // never gets shown as "OK". d.fault comes from inverter_status (an error
+    // code), the profile's fault_state (e.g. Deye's run state) and its fault
+    // registers, whose faults have names: those are shown when there are any.
+    const statusEl = $('inverter-status-text');
+    const fault = d.fault;
+    let statusText, statusColor;
+    if (d.error) {
+      statusText = t('status_error'); statusColor = 'var(--danger)';
+    } else if (!fault) {
+      statusText = t('status_dash'); statusColor = 'var(--muted)';
+    } else if (!fault.active) {
+      statusText = t('status_ok'); statusColor = 'var(--battery)';
+    } else {
+      const named = (fault.faults || []).filter(f => f.source === 'registers');
+      const status = (fault.faults || []).find(f => f.source === 'status' && f.name);
+      if (named.length) {
+        statusText = t('status_fault_named', { name: faultName(named[0]) + (named.length > 1 ? ' +' + (named.length - 1) : '') });
+      } else {
+        statusText = t(fault.kind === 'state' ? 'status_fault_state' : 'status_error_code', { code: fault.code })
+          + (status ? ' · ' + status.name : '');
+      }
+      statusColor = 'var(--danger)';
+    }
+    statusEl.textContent = ` (${statusText})`;
+    statusEl.style.color = statusColor;
+  }
+
+  // A fault as the core's faultName shows it: "F18 · AC Over-current failure",
+  // its name or code alone, or its group and number when it has neither.
+  function faultName(f) {
+    if (f.code && f.name) return f.code + ' · ' + f.name;
+    if (f.name) return f.name;
+    return f.group + ' ' + (f.code || f.id.split(/[.=]/).pop());
+  }
+
+  function loadTotals() {
+    fetch(API.totals + '?period=' + historyState.range + '&date=' + encodeURIComponent(historyState.date))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        $('st-solar').textContent       = fmt(d.solar_kwh,       1);
+        $('st-load').textContent        = fmt(d.load_kwh,        1);
+        $('st-import').textContent      = fmt(d.import_kwh,      1);
+        $('st-export').textContent      = fmt(d.export_kwh,      1);
+        $('st-bcharged').textContent    = fmt(d.bcharged_kwh,    1);
+        $('st-bdischarged').textContent = fmt(d.bdischarged_kwh, 1);
+      })
+      .catch(() => {});
+  }
+
+  applyStaticI18n();
+
+  initHistory();
+
+  // ── Kiosk: full screen, the flow and the chart side by side ──
+  // The button (or ?kiosk=1 in the address, for a screen that boots
+  // straight into it) switches the layout; it also asks the browser for
+  // full screen when it can. Esc or the button leave it. While in it the
+  // cursor and the button hide after a few idle seconds, a clock shows
+  // the time, and the page moves a few pixels now and then so nothing
+  // burns into the screen.
+  (function initKiosk() {
+    const btn = $('kiosk-btn');
+    let idleTimer = null, clockTimer = null, shiftTimer = null;
+
+    function setTitle(key) {
+      btn.dataset.i18nTitle = key;
+      btn.dataset.i18nAriaLabel = key;
+      btn.title = t(key);
+      btn.setAttribute('aria-label', t(key));
+    }
+    function tickClock() {
+      const now = new Date();
+      $('kiosk-time').textContent = now.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', hour12: false });
+      $('kiosk-date').textContent = now.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    function shift() {
+      const r = () => Math.round(Math.random() * 8 - 4) + 'px';
+      document.body.style.setProperty('--kiosk-dx', r());
+      document.body.style.setProperty('--kiosk-dy', r());
+    }
+    function wake() {
+      document.body.classList.remove('kiosk-idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => document.body.classList.add('kiosk-idle'), 3000);
+    }
+    const redraw = () => requestAnimationFrame(() => drawHistoryChart(historyState.buckets));
+
+    function enter(fullscreen) {
+      if (document.body.classList.contains('kiosk')) return;
+      document.body.classList.add('kiosk');
+      setTitle('kiosk_exit');
+      tickClock();
+      clockTimer = setInterval(tickClock, 10000);
+      shiftTimer = setInterval(shift, 5 * 60 * 1000);
+      document.addEventListener('mousemove', wake);
+      document.addEventListener('touchstart', wake);
+      wake();
+      const el = document.documentElement;
+      if (fullscreen && el.requestFullscreen && !document.fullscreenElement) {
+        el.requestFullscreen().catch(() => {}); // not allowed: the layout alone
+      }
+      redraw();
+    }
+    function exit() {
+      if (!document.body.classList.contains('kiosk')) return;
+      document.body.classList.remove('kiosk', 'kiosk-idle');
+      document.body.style.removeProperty('--kiosk-dx');
+      document.body.style.removeProperty('--kiosk-dy');
+      setTitle('kiosk_enter');
+      clearInterval(clockTimer); clearInterval(shiftTimer); clearTimeout(idleTimer);
+      document.removeEventListener('mousemove', wake);
+      document.removeEventListener('touchstart', wake);
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      redraw();
+    }
+
+    btn.addEventListener('click', () => {
+      if (document.body.classList.contains('kiosk')) exit(); else enter(true);
+    });
+    // Esc in full screen only leaves full screen: leave the kiosk with it.
+    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) exit(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') exit(); });
+
+    if (new URLSearchParams(window.location.search).get('kiosk') === '1') enter(false);
+  })();
+  loadTotals();
+  setInterval(() => { if (!document.hidden) loadTotals(); }, 5 * 60 * 1000);
+  requestAnimationFrame(animateFlow);
+
+
+  // ── Activity log (inverter status, relay, smartspot — merged,
+  // paginated, newest first). Backed by a bounded in-RAM ring buffer on
+  // the core (see internal/eventlog): entries fall off once it's full,
+  // and it starts empty on every restart — there's nothing to page back
+  // to past what the core currently holds. ──────────────────────
+  let logOffset = 0;
+  const logLimit = 10;
+
+  function loadEventLog() {
+    fetch(apiBase + '/api/logs?limit=' + logLimit + '&offset=' + logOffset)
+      .then(r => r.json())
+      .then(d => {
+        const el = $('event-log');
+        const events = d.events || [];
+        const total = d.total || 0;
+
+        if (!events.length) {
+          el.innerHTML = '<li class="empty">' + t('log_no_activity') + '</li>';
+        } else {
+          // "core" is the small, fixed set of events the core itself
+          // detects (battery, comms, inverter) — translated here by kind.
+          // Any other source is an opaque plugin ID: rendered generically
+          // off Text/OK alone, exactly like a brand-new notification type
+          // needs no change here (see eventlog.Entry's doc comment) — this
+          // page never special-cases which plugins exist.
+          el.innerHTML = events.map(e => {
+            const tstr = fmtDateTime(new Date(e.ts), true);
+            if (e.source === 'core') {
+              const coreDots = { battery_full: 'on', battery_low: 'warn', comm_error: 'warn', comm_ok: 'on', inverter_fault: 'warn', inverter_fault_state: 'warn', inverter_fault_named: 'warn' };
+              const coreLabels = {
+                battery_full: () => t('log_battery_full'),
+                // A 0% level has no code (omitted when zero).
+                battery_low: () => t('log_battery_low', { level: e.code || 0 }),
+                comm_error: () => t('log_comm_error'),
+                comm_ok: () => t('log_comm_ok'),
+                inverter_fault: () => t('log_inverter_error', { code: e.code }) + ((e.args || {}).name ? ' · ' + e.args.name : ''),
+                inverter_fault_state: () => t('log_inverter_fault_state', { code: e.code }),
+                inverter_fault_named: () => t('log_inverter_fault_named', { names: (e.args || {}).names || '' }),
+                profile_changed: () => t('log_profile_changed', e.args || {}),
+                config_restored: () => t('log_config_restored'),
+                inverter_restarted: () => t('log_inverter_restarted'),
+              };
+              const dot = coreDots[e.kind] || '';
+              const label = (coreLabels[e.kind] || (() => e.text))();
+              return '<li><span class="dot ' + dot + '"></span>' + tstr + ' — ' + label + '</li>';
+            }
+            const dot = e.ok ? 'on' : 'warn';
+            return '<li><span class="dot ' + dot + '"></span>' + tstr + ' — ' + (e.text || e.kind || '') + '</li>';
+          }).join('');
+        }
+
+        $('event-log-prev').disabled = logOffset <= 0;
+        $('event-log-next').disabled = logOffset + logLimit >= total;
+        $('event-log-page-info').textContent = total
+          ? t('log_page_info', { from: logOffset + 1, to: Math.min(logOffset + logLimit, total), total })
+          : '';
+      })
+      .catch(() => {});
+  }
+
+  $('event-log-prev').addEventListener('click', () => {
+    logOffset = Math.max(0, logOffset - logLimit);
+    loadEventLog();
+  });
+  $('event-log-next').addEventListener('click', () => {
+    logOffset += logLimit;
+    loadEventLog();
+  });
+
+  loadEventLog();
+  // Only auto-refresh while viewing the first (newest) page, so paging
+  // through older entries isn't disrupted by the list shifting underneath.
+  // Not while the tab is hidden: the device isn't asked for what no one
+  // sees; it's read again the moment the tab comes back.
+  setInterval(() => { if (logOffset === 0 && !document.hidden) loadEventLog(); }, 5000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && logOffset === 0) loadEventLog();
+  });
+
+  // ── Active inverter profile label next to the status dot ──
+  function refreshActiveProfileLabel() {
+    fetch(API.profile)
+      .then(r => r.ok ? parseJsonOrThrow(r) : null)
+      .then(d => {
+        if (!d) return;
+        const name = (d.profile && d.profile.name) || d.id || '';
+        $('active-profile-label').textContent = name;
+      })
+      .catch(() => {});
+  }
+  refreshActiveProfileLabel();
+  setInterval(() => { if (!document.hidden) refreshActiveProfileLabel(); }, 30000);
+
+  connect();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+{
+  "name": "INVT XD/XG-TL Hybrid (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 15105,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 15106,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power",
+      "label": "PV3 Power",
+      "address": 15107,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv4_total_power",
+      "label": "PV4 Power",
+      "address": 15108,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "inverter_ac_power",
+      "label": "AC Output Power",
+      "address": 14365,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "address": 14375,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 14600,
+      "function_code": 3,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 14651,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery SOH",
+      "address": 14652,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 14390,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 14391,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 14392,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 14393,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv3_total_power_p_v",
+      "label": "PV3 Voltage",
+      "address": 14394,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_i",
+      "label": "PV3 Current",
+      "address": 14395,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv4_total_power_p_v",
+      "label": "PV4 Voltage",
+      "address": 14396,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv4_total_power_p_i",
+      "label": "PV4 Current",
+      "address": 14397,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 14353,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 14359,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 14354,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 14360,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 14355,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 14361,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 14602,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 14362,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power",
+        "pv3_total_power",
+        "pv4_total_power"
+      ]
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "unit": "W",
+      "sum_of": [
+        "inverter_ac_power",
+        "measured_power"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "Device alarm",
+      "registers": [
+        14344,
+        14343
+      ],
+      "function_code": 3,
+      "kind": "code",
+      "severity": "alarm",
+      "names": {
+        "65537": "FAN 1",
+        "65538": "FAN 2",
+        "65539": "FAN 3",
+        "65540": "FAN 4",
+        "65541": "FAN 5",
+        "65542": "FAN 6",
+        "65543": "FAN 7",
+        "65544": "FAN 8",
+        "65545": "FAN 9",
+        "65546": "FAN 10",
+        "131073": "Ligning Protection",
+        "196609": "String 1",
+        "196610": "String 2",
+        "196611": "String 3",
+        "196612": "String 4",
+        "196613": "String 5",
+        "196614": "String 6",
+        "196615": "String 7",
+        "196616": "String 8",
+        "196617": "String 9",
+        "196618": "String 10",
+        "196619": "String 11",
+        "196620": "String 12",
+        "196621": "String 13",
+        "196622": "String 14",
+        "196623": "String 15",
+        "196624": "String 16",
+        "196625": "String 17",
+        "196626": "String 18",
+        "196627": "String 19",
+        "196628": "String 20"
+      },
+      "codes": {
+        "65537": "ID 01-01",
+        "65538": "ID 01-02",
+        "65539": "ID 01-03",
+        "65540": "ID 01-04",
+        "65541": "ID 01-05",
+        "65542": "ID 01-06",
+        "65543": "ID 01-07",
+        "65544": "ID 01-08",
+        "65545": "ID 01-09",
+        "65546": "ID 01-10",
+        "131073": "ID 02-01",
+        "196609": "ID 03-01",
+        "196610": "ID 03-02",
+        "196611": "ID 03-03",
+        "196612": "ID 03-04",
+        "196613": "ID 03-05",
+        "196614": "ID 03-06",
+        "196615": "ID 03-07",
+        "196616": "ID 03-08",
+        "196617": "ID 03-09",
+        "196618": "ID 03-10",
+        "196619": "ID 03-11",
+        "196620": "ID 03-12",
+        "196621": "ID 03-13",
+        "196622": "ID 03-14",
+        "196623": "ID 03-15",
+        "196624": "ID 03-16",
+        "196625": "ID 03-17",
+        "196626": "ID 03-18",
+        "196627": "ID 03-19",
+        "196628": "ID 03-20"
+      }
+    },
+    {
+      "group": "Device fault",
+      "registers": [
+        14346,
+        14345
+      ],
+      "function_code": 3,
+      "kind": "code",
+      "severity": "fault",
+      "names": {
+        "65537": "PV Electricity Down",
+        "65538": "PV Voltage High",
+        "196609": "BUS Voltage Low",
+        "196610": "BUS Voltage High",
+        "196611": "BUS Voltage Imbalance",
+        "327681": "Inverter Hardware Fault",
+        "327682": "Inverter Software Fault",
+        "327683": "Inverter BOOST Hardware Fault",
+        "393217": "Inverter Temperature",
+        "393218": "Inverter BOOST Temperature",
+        "393219": "Heatsink Temperature",
+        "393220": "Ambient Temperature",
+        "458753": "Insulation Fault",
+        "524289": "Drive Fault",
+        "589825": "DSP1 - ARM SCI Comm Fault",
+        "589826": "DSP2 - ARM SCI Comm Fault",
+        "589827": "DSP1 - SPI Comm Fault",
+        "589828": "SCI - MCU Comm Fault",
+        "655361": "Current Leakage",
+        "655362": "30mA Current Leakage",
+        "655363": "60mA Current Leakage",
+        "655364": "150mA Current Leakage",
+        "720897": "Open Circuit",
+        "720898": "Short Circuit",
+        "917505": "DCI R pfase Fault",
+        "917506": "DCI S pfase Fault",
+        "917507": "DCI T pfase Fault",
+        "1245185": "AC Voltage Consistency Fault",
+        "1245186": "BUS Voltage Consistency Fault",
+        "1245187": "ISO Voltage Consistency Fault",
+        "1245188": "PV Voltage Consistency Fault",
+        "1245189": "GFCI Voltage Consistency Fault",
+        "2031617": "Mains Voltage High",
+        "2162689": "Mains Frequency Low",
+        "2162690": "Mains Frequency Low",
+        "2424833": "Remote Shutdown",
+        "2818049": "Current Leakage sensor Fault",
+        "2949121": "Auxiliary Power OFF"
+      },
+      "codes": {
+        "65537": "ID 01-01",
+        "65538": "ID 01-02",
+        "196609": "ID 03-01",
+        "196610": "ID 03-02",
+        "196611": "ID 03-03",
+        "327681": "ID 05-01",
+        "327682": "ID 05-02",
+        "327683": "ID 05-02",
+        "393217": "ID 06-01",
+        "393218": "ID 06-02",
+        "393219": "ID 06-03",
+        "393220": "ID 06-04",
+        "458753": "ID 07-01",
+        "524289": "ID 08-01",
+        "589825": "ID 09-01",
+        "589826": "ID 09-02",
+        "589827": "ID 09-03",
+        "589828": "ID 09-05",
+        "655361": "ID 10-01",
+        "655362": "ID 10-02",
+        "655363": "ID 10-03",
+        "655364": "ID 10-04",
+        "720897": "ID 11-01",
+        "720898": "ID 11-02",
+        "917505": "ID 14-01",
+        "917506": "ID 14-02",
+        "917507": "ID 14-03",
+        "1245185": "ID 19-01",
+        "1245186": "ID 19-02",
+        "1245187": "ID 19-03",
+        "1245188": "ID 19-04",
+        "1245189": "ID 19-05",
+        "2031617": "ID 31-02",
+        "2162689": "ID 33-01",
+        "2162690": "ID 33-01",
+        "2424833": "ID 37-01",
+        "2818049": "ID 43-01",
+        "2949121": "ID 45-01"
+      }
+    }
+  ]
+}

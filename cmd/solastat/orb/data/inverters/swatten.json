@@ -1,0 +1,272 @@
+{
+  "name": "Swatten Inverter",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "inverter_status",
+      "label": "Inverter Status",
+      "address": 5253,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "address": 4067,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "measured_power",
+      "label": "Measured Power",
+      "address": 5401,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "solar_energy_total",
+      "label": "Solar Energy Total",
+      "address": 10003,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "kWh",
+      "multiplier": 0.1
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Total Consumption Power",
+      "address": 10008,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 10022,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery level",
+      "address": 10023,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery health",
+      "address": 10024,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_discharged_total",
+      "label": "Battery Discharged Total",
+      "address": 10027,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "kWh",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_import_total",
+      "label": "Grid Import Total",
+      "address": 10037,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "kWh",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_charged_total",
+      "label": "Battery Charged Total",
+      "address": 10041,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "kWh",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_export_total",
+      "label": "Grid Export Total",
+      "address": 10046,
+      "function_code": 4,
+      "value_type": "U_DWORD_R",
+      "unit": "kWh",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 4061,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 4062,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 4063,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 4064,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 4069,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 4072,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 10020,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 10021,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 4198,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "status_names": {
+    "1": "System Fault",
+    "100": "Grid Overvoltage",
+    "101": "Grid Overvoltage",
+    "102": "Grid Undervoltage",
+    "106": "Grid Overfrequency",
+    "107": "Grid Underfrequency",
+    "108": "System Fault",
+    "109": "System Fault",
+    "110": "Leakage Current Fault",
+    "111": "System Fault",
+    "112": "Grid Overvoltage",
+    "116": "System Fault",
+    "122": "Ground Fault",
+    "123": "System Fault",
+    "129": "EPS Load Overload",
+    "200": "System Fault",
+    "201": "System Fault",
+    "205": "System Fault",
+    "206": "System Fault",
+    "209": "Photovoltaic Reverse Connection Fault (PV1)",
+    "210": "Photovoltaic Reverse Connection Fault (PV2, PV3)",
+    "216": "System Fault",
+    "218": "System Fault",
+    "227": "System Fault",
+    "300": "System Fault",
+    "301": "System Fault",
+    "305": "System Fault",
+    "312": "System Fault",
+    "316": "System Fault",
+    "320": "System Fault",
+    "400": "System Fault",
+    "401": "System Fault",
+    "403": "System Fault",
+    "404": "System Fault",
+    "479": "System Fault",
+    "481": "System Fault",
+    "501": "Environmental Overtemperature",
+    "502": "System Fault",
+    "503": "Insulation Fault",
+    "505": "System Fault",
+    "507": "System Fault",
+    "512": "System Fault",
+    "516": "Off-grid Abnormality",
+    "528": "Off-grid Abnormality",
+    "529": "Off-grid Abnormality",
+    "530": "Off-grid Abnormality",
+    "531": "Off-grid Abnormality",
+    "603": "Battery Abnormality",
+    "611": "Battery Abnormality",
+    "612": "Battery Abnormality",
+    "615": "Battery Abnormality",
+    "616": "Battery Abnormality",
+    "700": "System Fault",
+    "701": "System Fault",
+    "702": "System Fault",
+    "703": "System Fault",
+    "805": "Parallel Communication Abnormality",
+    "818": "System Fault",
+    "819": "System Fault",
+    "820": "System Fault",
+    "821": "System Fault",
+    "822": "System Fault",
+    "825": "System Fault",
+    "829": "System Fault",
+    "830": "Meter Communication Abnormality",
+    "831": "BMS Communication Abnormality"
+  }
+}

@@ -1,0 +1,31 @@
+# build artifacts / binaries
+/solastat
+/cmd/solastat/solastat
+/bin/
+/packages/
+/.orbit/
+
+# runtime data
+/cmd/solastat/devdata/
+*.db
+*.db-shm
+*.db-wal
+
+# the gRPC TLS client certificate and key (orbit.project.json certsDir)
+/cmd/certs/
+
+# this machine's Orbit settings (the signing profile)
+/orbit.project.local.json
+
+# editors and local tools (each machine's own)
+/.vscode/
+/.claude/
+
+# Go test binaries, coverage and profiles
+*.test
+*.out
+*.prof
+
+# leftovers of an atomic write cut short, and packages built off packages/
+*.tmp
+*.orb

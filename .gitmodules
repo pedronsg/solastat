@@ -1,0 +1,6 @@
+[submodule "plugins/template"]
+	path = plugins/template
+	url = https://github.com/pedronsg/solastat-template.git
+[submodule "orbit-os-sdk-go"]
+	path = orbit-os-sdk-go
+	url = https://github.com/OrbitOS-org/orbit-os-sdk-go.git

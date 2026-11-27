@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolaStat · Setup</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    :root {
+      /* Palette of solastat.com: black stage, neutral near-black cards and greys,
+         energy colours unchanged, the sun gradient as the one accent. */
+      --bg:          #0b1120;
+      --card:        #111113;
+      --border:      #26262b;
+      --field:       #0a0a0b;
+      --accent:      #f59e0b;
+      --accent-grad: linear-gradient(100deg, #fde047 0%, #f59e0b 45%, #f97316 100%);
+      --accent-ink:  #1a1206;
+      --text:   #f5f5f7;
+      --muted:  #a1a1aa;
+      --solar:  #f59e0b;
+      --grid:   #818cf8;
+      --ok:     #34d399;
+      --danger: #f87171;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      /* Night-blue with a soft blue glow, like the "Every watt. Live."
+         section of solastat.com. Fixed, so it doesn't scroll with the page. */
+      background:
+        radial-gradient(90% 55% at 50% 0%, rgba(96, 165, 250, 0.16), transparent 70%),
+        radial-gradient(80% 50% at 50% 100%, rgba(129, 140, 248, 0.22), transparent 70%),
+        var(--bg);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 1.25rem 0.9rem 3rem;
+    }
+    .wizard-shell { max-width: 460px; margin: 0 auto; }
+    .wizard-help { text-align: center; margin-top: 1.1rem; font-size: 0.8rem; color: var(--muted); }
+    .wizard-help a { color: var(--accent); text-decoration: none; }
+    .wizard-help a:hover { text-decoration: underline; }
+    .wizard-help a::after { content: " ↗"; }
+
+    /* ── Progress ─────────────────────────────────────────── */
+    .wizard-progress {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.4rem;
+    }
+    /* A set-up device's wizard is its first step only (setupDone): the
+       other steps aren't shown. */
+    .wizard-progress.first-only { justify-content: center; }
+    .wizard-progress.first-only .step-line,
+    .wizard-progress.first-only .step-dot:not([data-step="0"]) { display: none; }
+    .step-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      flex-shrink: 0;
+    }
+    .step-dot .circle {
+      width: 2rem; height: 2rem;
+      border-radius: 50%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .step-dot label {
+      font-size: 0.62rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .step-dot.active .circle { background: var(--accent-grad); border-color: var(--accent); color: var(--accent-ink); }
+    .step-dot.active label { color: var(--text); font-weight: 600; }
+    .step-dot.done .circle { background: rgba(52,211,153,0.15); border-color: var(--ok); color: var(--ok); }
+    .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 0.3rem 1.1rem; }
+    .step-line.done { background: var(--ok); }
+
+    /* ── Card ─────────────────────────────────────────────── */
+    .wizard-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1.25rem 1.1rem;
+    }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .wizard-step h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .field-hint { font-size: 0.74rem; color: var(--muted); line-height: 1.45; margin-top: 0.35rem; }
+    .wizard-step .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.5; margin-bottom: 1.1rem; }
+
+    label.field-label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.35rem; }
+    select, input[type="text"], input[type="number"], input[type="password"] {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.55rem 0.7rem;
+      width: 100%;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--grid); }
+
+    .form-group { margin-bottom: 0.85rem; }
+
+    /* The Wi-Fi picker: a box of its own, its Connect apart from the step's
+       Continue; the list and its Scan share a row. */
+    .wifi-box {
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      padding: 0.85rem;
+    }
+    .input-row { display: flex; align-items: stretch; gap: 0.5rem; }
+    .input-row select { flex: 1 1 auto; min-width: 0; }
+    .input-row button { flex: none; white-space: nowrap; }
+    .wifi-box #wifi-connect { width: 100%; }
+    .wifi-box .form-group:last-child { margin-bottom: 0; }
+    .wifi-progress {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--field);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .wifi-progress[hidden] { display: none; }
+    .wifi-progress .spinner, .wifi-progress .mark { flex: none; margin-top: 0.1rem; }
+    .wifi-progress .mark {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+      color: var(--accent-ink);
+    }
+    .wifi-progress.ok { border-color: var(--ok); }
+    .wifi-progress.ok .mark { background: var(--ok); }
+    .wifi-progress.failed { border-color: var(--danger); }
+    .wifi-progress.failed .mark { background: var(--danger); }
+    .wifi-progress a { display: block; margin-top: 0.25rem; color: var(--accent); word-break: break-all; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+
+    .toggle-row { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: var(--ok); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.85rem; }
+
+    /* ── Test step ────────────────────────────────────────── */
+    .test-status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0.6rem;
+      background: var(--field);
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .test-status .spinner, .wifi-progress .spinner {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--grid);
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .test-status.ok { border-color: var(--ok); color: var(--ok); }
+    .test-status.warn { border-color: var(--danger); color: var(--danger); }
+    .test-values {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .test-values .tv {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 0.6rem 0.75rem;
+    }
+    .test-values .tv .lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .test-values .tv .val { font-size: 1.05rem; font-weight: 700; margin-top: 0.15rem; }
+
+    /* ── Actions ──────────────────────────────────────────── */
+    .wizard-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1.2rem;
+      gap: 0.5rem;
+    }
+    .wizard-actions .right-group { display: flex; align-items: center; gap: 0.6rem; }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    /* button.primary / .secondary / .danger: the shared style, in nav.js. */
+    button.ghost {
+      background: none;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 0.5rem 0.3rem;
+      text-decoration: underline;
+    }
+    button.ghost:hover { color: var(--text); }
+
+    #wizard-msg { font-size: 0.78rem; color: var(--danger); margin-top: 0.7rem; min-height: 1.1em; }
+  </style>
+</head>
+<body>
+
+<div class="wizard-shell">
+  <div class="wizard-progress" id="wizard-progress">
+    <div class="step-dot" data-step="0"><span class="circle">1</span><label data-i18n="step_network">Time &amp; network</label></div>
+    <div class="step-line" data-line="0"></div>
+    <div class="step-dot" data-step="1"><span class="circle">2</span><label data-i18n="step_profile">Profile</label></div>
+    <div class="step-line" data-line="1"></div>
+    <div class="step-dot" data-step="2"><span class="circle">3</span><label data-i18n="step_connection">Connection</label></div>
+    <div class="step-line" data-line="2"></div>
+    <div class="step-dot" data-step="3"><span class="circle">4</span><label data-i18n="step_test">Test</label></div>
+    <div class="step-line" data-line="3"></div>
+    <div class="step-dot" data-step="4"><span class="circle">5</span><label data-i18n="step_mqtt">MQTT</label></div>
+  </div>
+
+  <div class="wizard-card">
+
+    <!-- ── Step 0: Time zone and network (setup mode's long press
+         lands here; the dots count from it) ──────────────── -->
+    <section class="wizard-step" id="wizard-step-0">
+      <h2 data-i18n="step0_title">Time zone and network</h2>
+      <p class="hint" data-i18n="step0_hint">Pick where this device is and how it reaches your network.</p>
+      <div class="form-group" id="device-name-row" hidden>
+        <label class="field-label" for="device-name" data-i18n="step0_name_label">Device name</label>
+        <input type="text" id="device-name" maxlength="63" autocomplete="off" spellcheck="false">
+        <p class="field-hint" data-i18n="step0_name_hint">How it shows in Orbit OS and the Store, e.g. “SolaStat garage”.</p>
+      </div>
+      <div class="form-group">
+        <label class="field-label" data-i18n="step1_timezone_label">Timezone</label>
+        <select id="timezone-select"></select>
+      </div>
+      <div class="wifi-box" id="network-row" hidden>
+        <div class="form-group">
+          <label class="field-label" data-i18n="step0_wifi_label">Wi-Fi network</label>
+          <div class="input-row">
+            <select id="wifi-list"></select>
+            <button class="secondary" id="wifi-scan" data-i18n="step0_wifi_scan">Scan</button>
+          </div>
+          <p class="field-hint" id="wifi-state"></p>
+        </div>
+        <div class="form-group" id="wifi-password-row">
+          <label class="field-label" data-i18n="step0_wifi_password">Password</label>
+          <input type="password" id="wifi-password" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <button class="secondary" id="wifi-connect" data-i18n="step0_wifi_connect">Connect</button>
+          <div class="wifi-progress" id="wifi-progress" role="status" hidden>
+            <span class="spinner" id="wifi-spinner"></span>
+            <span class="mark" id="wifi-mark" hidden></span>
+            <div><span id="wifi-progress-text"></span><a id="wifi-progress-link" hidden></a></div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <span></span>
+        <button class="primary" id="step0-next" data-i18n="btn_continue">Continue</button>
+      </div>
+    </section>
+
+    <!-- ── Step 1: Inverter profile ─────────────────────────── -->
+    <section class="wizard-step" id="wizard-step-1">
+      <h2 data-i18n="step1_title">Choose your inverter</h2>
+      <p class="hint" data-i18n="step1_hint">Pick the profile that matches your inverter. You can fine-tune registers later in Settings.</p>
+      <div class="form-group">
+        <select id="profile-list"><option data-i18n="step1_loading">Loading profiles...</option></select>
+      </div>
+      <div class="wizard-actions">
+        <button class="secondary" data-back data-i18n="btn_back">Back</button>
+        <button class="primary" id="step1-next" disabled data-i18n="btn_continue">Continue</button>
+      </div>
+    </section>
+
+    <!-- ── Step 2: Connection ───────────────────────────────── -->
+    <section class="wizard-step" id="wizard-step-2">
+      <h2 data-i18n="step2_title">Connection</h2>
+      <p class="hint" id="step2-hint" data-i18n="step2_hint_uart">Select the UART port your inverter is wired to.</p>
+      <!-- The connection type is a choice on every board; only the UART port
+           itself is fixed on certified SolaStat boards (see prepareStep2). -->
+      <div id="conn-type-row" class="form-group">
+        <label class="field-label" for="conn-type-select" data-i18n="lbl_connection">Connection</label>
+        <select id="conn-type-select">
+          <option value="rtu" data-i18n="opt_conn_rtu">RTU (RS485 / UART)</option>
+          <option value="tcp" data-i18n="opt_conn_tcp">TCP (Solarman datalogger)</option>
+          <option value="modbus_tcp" data-i18n="opt_conn_modbus_tcp">Modbus TCP (Ethernet / Wi-Fi)</option>
+          <option value="rtu_tcp" data-i18n="opt_conn_rtu_tcp">Modbus RTU over TCP (gateway / Solarman in Transparency)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="port-row" style="display:none">
+        <label class="field-label" data-i18n="step2_port_label">UART port</label>
+        <select id="port-select"><option data-i18n="step1_loading">Loading profiles...</option></select>
+      </div>
+
+      <!-- Network connections: a Solarman datalogger (IP + serial number),
+           the inverter's own Modbus TCP server, or an RTU-over-TCP gateway
+           (IP + port). -->
+      <div id="tcp-row" style="display:none">
+        <div class="form-group">
+          <label class="field-label" id="tcp-host-label" data-i18n="step2_tcp_host_label">Datalogger IP / Host</label>
+          <input type="text" id="tcp-host-input" placeholder="192.168.1.50">
+        </div>
+        <div class="form-group" id="tcp-serial-group">
+          <label class="field-label" data-i18n="step2_tcp_serial_label">Datalogger Serial Number</label>
+          <input type="text" id="tcp-serial-input" inputmode="numeric" placeholder="123456789">
+          <p class="field-hint" data-i18n="step2_tcp_serial_hint">Leave it empty: SolaStat asks the logger for it. Only a logger that won’t tell it needs the number from its label.</p>
+        </div>
+        <div class="form-group" id="tcp-port-group" style="display:none">
+          <label class="field-label" data-i18n="step2_tcp_port_label">Port</label>
+          <input type="text" id="tcp-port-input" inputmode="numeric" placeholder="502">
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <button class="secondary" data-back data-i18n="btn_back">Back</button>
+        <button class="primary" id="step2-next" data-i18n="btn_continue">Continue</button>
+      </div>
+    </section>
+
+    <!-- ── Step 3: Test ─────────────────────────────────────── -->
+    <section class="wizard-step" id="wizard-step-3">
+      <h2 data-i18n="step3_title">Test the connection</h2>
+      <p class="hint" data-i18n="step3_hint">SolaStat is trying to read live data from your inverter.</p>
+      <div class="test-status" id="test-status">
+        <span class="spinner"></span>
+        <span id="test-status-text" data-i18n="step3_waiting">Waiting for data...</span>
+      </div>
+      <div class="test-values">
+        <div class="tv"><div class="lbl" data-i18n="lbl_solar">Solar</div><div class="val" id="tv-solar">--</div></div>
+        <div class="tv"><div class="lbl" data-i18n="lbl_load">Load</div><div class="val" id="tv-load">--</div></div>
+        <div class="tv"><div class="lbl" data-i18n="lbl_battery">Battery</div><div class="val" id="tv-battery">--</div></div>
+        <div class="tv"><div class="lbl" data-i18n="lbl_grid">Grid</div><div class="val" id="tv-grid">--</div></div>
+      </div>
+      <div class="wizard-actions">
+        <button class="secondary" data-back data-i18n="btn_back">Back</button>
+        <div class="right-group">
+          <button class="ghost" id="step3-skip" data-i18n="btn_skip" hidden>Skip</button>
+          <button class="primary" id="step3-next" disabled data-i18n="btn_continue">Continue</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Step 4: MQTT (optional) ──────────────────────────── -->
+    <section class="wizard-step" id="wizard-step-4">
+      <h2 data-i18n="step4_title">MQTT · Home Assistant (optional)</h2>
+      <p class="hint" data-i18n="step4_hint">Optional — you can always set this up later in Settings.</p>
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="mqtt-enabled">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label" data-i18n="step4_enable">Enable MQTT</span>
+      </div>
+
+      <div id="mqtt-fields" style="display:none">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_broker">Broker Host / IP</label>
+            <input type="text" id="mqtt-broker" placeholder="192.168.1.x">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_port">Port</label>
+            <input type="number" id="mqtt-port" value="1883" min="1" max="65535">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_user">Username (optional)</label>
+            <input type="text" id="mqtt-username">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_pass">Password (optional)</label>
+            <input type="password" id="mqtt-password">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_client_id">Client ID</label>
+            <input type="text" id="mqtt-client-id" placeholder="solastat">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_device_name">Device Name (in HA)</label>
+            <input type="text" id="mqtt-device-name" placeholder="SolaStat">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_topic_prefix">State Topic Prefix</label>
+            <input type="text" id="mqtt-topic-prefix" placeholder="solastat">
+          </div>
+          <div class="form-group">
+            <label class="field-label" data-i18n="lbl_discovery_prefix">HA Discovery Prefix</label>
+            <input type="text" id="mqtt-discovery-prefix" placeholder="homeassistant">
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-actions">
+        <button class="secondary" data-back data-i18n="btn_back">Back</button>
+        <div class="right-group">
+          <button class="ghost" id="step4-skip" data-i18n="btn_skip">Skip</button>
+          <button class="primary" id="step4-finish" data-i18n="btn_finish">Finish</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shared by every step (the steps themselves are hidden when not active). -->
+    <div id="wizard-msg" role="alert"></div>
+  </div>
+
+  <div class="wizard-help">
+    <span data-i18n="wizard_help">Need help?</span>
+    <a data-site-href="support.html" href="https://www.solastat.com/support.html" target="_blank" rel="noopener" data-i18n="about_support">Help &amp; support</a>
+  </div>
+</div>
+
+<script src="/i18n.js"></script>
+<script src="/nav.js" data-mode="minimal"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const routePrefix = window.location.pathname.startsWith('/solastat') ? '/solastat' : '';
+  const apiBase = window.location.origin + routePrefix;
+  const API = {
+    profiles: apiBase + '/api/profiles',
+    profile:  apiBase + '/api/profile',
+    ports:    apiBase + '/api/ports',
+    config:   apiBase + '/api/config',
+    mqtt:     apiBase + '/api/mqtt',
+    events:   apiBase + '/events',
+    complete: apiBase + '/api/setup/complete',
+    connect:  apiBase + '/api/setup/connect',
+    timezone: apiBase + '/api/timezone',
+    deviceName: apiBase + '/api/device-name',
+    wifiStatus:  apiBase + '/api/wifi/status',
+    wifiScan:    apiBase + '/api/wifi/scan',
+    wifiConnect: apiBase + '/api/wifi/connect',
+  };
+
+  // ── Wizard step navigation ─────────────────────────────────
+  let currentStep = 0;
+  function goToStep(n) {
+    currentStep = n;
+    $('wizard-msg').textContent = ''; // a message belongs to the step it came from
+    document.querySelectorAll('.wizard-step').forEach((el) => el.classList.remove('active'));
+    $(`wizard-step-${n}`).classList.add('active');
+    document.querySelectorAll('.step-dot').forEach((el) => {
+      const s = Number(el.dataset.step);
+      el.classList.toggle('active', s === n);
+      el.classList.toggle('done', s < n);
+    });
+    document.querySelectorAll('.step-line').forEach((el) => {
+      el.classList.toggle('done', Number(el.dataset.line) < n);
+    });
+    if (n === 3) startTest(); else stopTest();
+  }
+  document.querySelectorAll('[data-back]').forEach((btn) => {
+    btn.addEventListener('click', () => goToStep(Math.max(0, currentStep - 1)));
+  });
+
+  // ── Step 0: timezone + network ───────────────────────────
+  // setupDone: a long press on a set-up device, here for these two only.
+  let setupDone = false;
+
+  // The timezone POST sets the device's own where it has one, else
+  // SolaStat's (/api/timezone).
+  $('step0-next').addEventListener('click', () => {
+    $('step0-next').disabled = true;
+    saveDeviceName()
+      .then(() => fetch(API.timezone, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: $('timezone-select').value }),
+      }))
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); })
+      .then(() => {
+        if (setupDone) window.location.href = routePrefix + '/';
+        else goToStep(1);
+      })
+      .catch((e) => { $('wizard-msg').textContent = e.shown ? e.message : t('err_generic', { msg: e.message }); })
+      .finally(() => { $('step0-next').disabled = false; });
+  });
+
+  // ── Device name: what Orbit OS and the Store show; only where the
+  // device lets SolaStat set it (/api/device-name's settable) ──
+  let deviceName = '';
+  function loadDeviceName() {
+    fetch(API.deviceName)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || !d.settable) return;
+        deviceName = d.name || '';
+        $('device-name').value = deviceName;
+        $('device-name-row').hidden = false;
+      })
+      .catch(() => {});
+  }
+
+  // saveDeviceName sets the name when it changed; empty keeps it as it is.
+  function saveDeviceName() {
+    const name = $('device-name').value.trim();
+    if ($('device-name-row').hidden || !name || name === deviceName) return Promise.resolve();
+    return fetch(API.deviceName, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+      .then((r) => r.json().catch(() => ({})).then((d) => {
+        if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+        deviceName = name;
+      }))
+      .catch((e) => {
+        const err = new Error(t('step0_name_error', { msg: e.message }));
+        err.shown = true; // already says what failed
+        throw err;
+      });
+  }
+
+  let networkState = '';
+  function showNetworkState(st) {
+    networkState = t('wifi_state_none');
+    if (st.wired) networkState = t('wifi_state_wired');
+    else if (st.connected && st.ssid) networkState = t('wifi_state_connected', { ssid: st.ssid });
+    $('wifi-state').textContent = networkState;
+  }
+
+  function selectedNetwork() {
+    const opt = $('wifi-list').selectedOptions[0];
+    return opt ? JSON.parse(opt.dataset.network) : null;
+  }
+
+  function showPasswordRow() {
+    const n = selectedNetwork();
+    $('wifi-password-row').hidden = !!n && !n.security;
+  }
+  $('wifi-list').addEventListener('change', showPasswordRow);
+
+  // Fills the list, keeping the network picked if it is still around.
+  function scanNetworks(force) {
+    const select = $('wifi-list');
+    const picked = select.value;
+    return fetch(API.wifiScan + (force ? '?force=1' : '')).then((r) => r.json()).then((d) => {
+      select.innerHTML = '';
+      (d.networks || []).forEach((n) => {
+        const opt = document.createElement('option');
+        opt.value = n.ssid;
+        opt.textContent = n.ssid;
+        opt.dataset.network = JSON.stringify(n);
+        opt.selected = n.ssid === picked;
+        select.appendChild(opt);
+      });
+      $('wifi-connect').disabled = !select.options.length;
+      $('wifi-state').textContent = select.options.length ? networkState : t('wifi_no_networks');
+      showPasswordRow();
+    });
+  }
+
+  $('wifi-scan').addEventListener('click', () => {
+    $('wifi-scan').disabled = true;
+    scanNetworks(true)
+      .catch((e) => { $('wizard-msg').textContent = t('err_generic', { msg: e.message }); })
+      .finally(() => { $('wifi-scan').disabled = false; });
+  });
+
+  // No network row on a board without setup mode (available: false).
+  function loadNetwork() {
+    fetch(API.wifiStatus)
+      .then((r) => r.json())
+      .then((st) => {
+        if (!st.available) return;
+        $('network-row').hidden = false;
+        showNetworkState(st);
+        return scanNetworks(false);
+      })
+      .catch(() => {});
+  }
+
+  // state: 'busy' (the spinner), 'ok' or 'failed' (a mark); address, if
+  // given, is shown as a link.
+  function showProgress(state, text, address) {
+    const box = $('wifi-progress');
+    box.hidden = false;
+    box.className = 'wifi-progress' + (state === 'busy' ? '' : ' ' + state);
+    $('wifi-spinner').hidden = state !== 'busy';
+    $('wifi-mark').hidden = state === 'busy';
+    $('wifi-mark').textContent = state === 'ok' ? '✓' : '✕';
+    $('wifi-progress-text').textContent = text;
+    $('wifi-progress-link').hidden = !address;
+    if (address) {
+      $('wifi-progress-link').textContent = address;
+      $('wifi-progress-link').href = address;
+    }
+  }
+
+  function lockNetwork(locked) {
+    ['wifi-list', 'wifi-password', 'wifi-scan', 'wifi-connect'].forEach((id) => { $(id).disabled = locked; });
+  }
+
+  // How long a status answer may take, how often it is asked, and when the
+  // page gives up: past the device's own wait to join, and a phone's to go
+  // back to a known network.
+  const WIFI_POLL_TIMEOUT = 2500, WIFI_POLL_EVERY = 2000, WIFI_POLL_FOR = 180000;
+
+  function wifiStatusNow() {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), WIFI_POLL_TIMEOUT);
+    return fetch(API.wifiStatus, { signal: abort.signal })
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .finally(() => clearTimeout(timer));
+  }
+
+  // Joining closes the setup network under the phone, so no answer may come
+  // back: the page then says where to go, and goes on asking, for a phone
+  // that returns by itself (to the home network, or to the setup network a
+  // failure reopens). Only the device's answer tells it worked.
+  function watchConnect(ssid, address) {
+    const deadline = Date.now() + WIFI_POLL_FOR;
+    let lost = 0;
+    showProgress('busy', t('wifi_connecting', { ssid }));
+    const finish = (state, text, link) => {
+      showProgress(state, text, link);
+      lockNetwork(false);
+    };
+    const next = () => {
+      if (Date.now() >= deadline) {
+        finish('failed', t('wifi_unconfirmed', { ssid }), address);
+        return;
+      }
+      setTimeout(ask, WIFI_POLL_EVERY);
+    };
+    const ask = () => {
+      wifiStatusNow()
+        .then((st) => {
+          lost = 0;
+          if (!st.busy && st.last_error) {
+            showNetworkState(st);
+            finish('failed', t('wifi_failed', { ssid }));
+            return;
+          }
+          if (!st.busy && st.connected && st.ssid === ssid) {
+            showNetworkState(st);
+            finish('ok', t('wifi_state_connected', { ssid }));
+            return;
+          }
+          showProgress('busy', t('wifi_connecting', { ssid }));
+          next();
+        })
+        .catch(() => {
+          if (++lost >= 2) showProgress('busy', t('wifi_switching', { ssid }), address);
+          next();
+        });
+    };
+    next();
+  }
+
+  $('wifi-connect').addEventListener('click', () => {
+    const n = selectedNetwork();
+    if (!n) return;
+    lockNetwork(true);
+    $('wizard-msg').textContent = '';
+    showProgress('busy', t('wifi_connecting', { ssid: n.ssid }));
+    fetch(API.wifiStatus)
+      .then((r) => r.json())
+      .then((st) => fetch(API.wifiConnect, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ssid: n.ssid, password: $('wifi-password').value, security: n.security }),
+      }).then((r) => {
+        if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'HTTP ' + r.status); });
+        watchConnect(n.ssid, `http://${st.device_host || window.location.hostname}${routePrefix}/wizard`);
+      }))
+      .catch((e) => {
+        showProgress('failed', t('err_generic', { msg: e.message }));
+        lockNetwork(false);
+      });
+  });
+
+  // ── Step 1: profile ──────────────────────────────────────
+  let selectedProfileID = '';
+  let fixedUARTPort = ''; // set on certified SolaStat boards (/api/config)
+  let profileDetail = null; // full profile object from GET /api/profiles/{id}, reused to save TCP fields
+
+  // Populated from the browser's own IANA tz database (Intl.supportedValuesOf)
+  // rather than a hardcoded list — always complete, never goes stale. Falls
+  // back to a short curated list on a browser old enough not to support it.
+  function loadTimezones() {
+    const select = $('timezone-select');
+    let zones;
+    try {
+      zones = Intl.supportedValuesOf('timeZone');
+    } catch {
+      zones = [
+        'Europe/Lisbon', 'Europe/Madrid', 'Europe/London', 'Europe/Paris',
+        'Europe/Berlin', 'Europe/Rome', 'Europe/Amsterdam', 'Europe/Brussels',
+        'Europe/Dublin', 'Europe/Warsaw', 'Europe/Athens', 'Europe/Helsinki',
+        'Europe/Bucharest', 'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen',
+        'Europe/Vienna', 'Europe/Zurich', 'UTC',
+      ];
+    }
+    select.innerHTML = '';
+    zones.forEach((z) => {
+      const opt = document.createElement('option');
+      opt.value = z;
+      opt.textContent = z.replace(/_/g, ' ');
+      select.appendChild(opt);
+    });
+    fetch(API.timezone)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.timezone) select.value = d.timezone;
+      })
+      .catch(() => {});
+  }
+
+  function loadProfiles() {
+    fetch(API.profiles)
+      .then((r) => r.json())
+      .then((data) => {
+        const profiles = data.profiles || [];
+        const select = $('profile-list');
+        select.innerHTML = '';
+        profiles.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name || p.id;
+          opt.selected = p.id === data.current;
+          select.appendChild(opt);
+        });
+        selectedProfileID = select.value || '';
+        select.onchange = () => { selectedProfileID = select.value; $('step1-next').disabled = !selectedProfileID; };
+        $('step1-next').disabled = !selectedProfileID;
+      })
+      .catch(() => { $('profile-list').textContent = t('err_generic', { msg: 'could not load profiles' }); });
+  }
+
+  $('step1-next').addEventListener('click', () => {
+    if (!selectedProfileID) return;
+    $('step1-next').disabled = true;
+    fetch(API.profile, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selectedProfileID }),
+    })
+      .then(() => Promise.all([
+        fetch(API.config).then((r) => r.json()),
+        fetch(`${apiBase}/api/profiles/${encodeURIComponent(selectedProfileID)}`).then((r) => r.json()),
+      ]))
+      .then(([cfg, profile]) => {
+        fixedUARTPort = (cfg && cfg.fixedUARTPort) || '';
+        profileDetail = profile;
+        prepareStep2();
+        goToStep(2);
+      })
+      .catch((e) => { $('wizard-msg').textContent = t('err_generic', { msg: e.message }); })
+      .finally(() => { $('step1-next').disabled = false; });
+  });
+
+  // ── Step 2: connection ───────────────────────────────────
+  // Every board chooses the connection type — direct RTU, a Solarman TCP
+  // datalogger, or the inverter's own Modbus TCP server — preselected from
+  // the profile's modbus.connection. The only difference between boards is
+  // the UART port for RTU: certified SolaStat boards have it fixed by their
+  // hardware model (fixedUARTPort from /api/config, see boardUARTPort in
+  // main.go), so there is no port picker; any other board picks it here.
+  function prepareStep2() {
+    const conn = profileConn();
+    $('conn-type-select').value = conn;
+    updateConnFields($('conn-type-select').value || 'rtu');
+  }
+
+  // The profile's own connection type ('rtu' when it doesn't say).
+  function profileConn() {
+    return (profileDetail && profileDetail.modbus && profileDetail.modbus.connection) || 'rtu';
+  }
+  const isNetworkConn = (conn) => conn === 'tcp' || conn === 'modbus_tcp' || conn === 'rtu_tcp';
+  // The connections with a port field, and its default.
+  const defaultPorts = { modbus_tcp: 502, rtu_tcp: 8899 };
+
+  // Shows the fields one network connection needs — the Solarman serial
+  // number, or the port — and prefills them from the profile (the port
+  // only when the profile already uses this connection).
+  function fillNetworkFields(conn) {
+    const modbus = (profileDetail && profileDetail.modbus) || {};
+    const hasPort = conn in defaultPorts;
+    $('tcp-serial-group').style.display = hasPort ? 'none' : '';
+    $('tcp-port-group').style.display = hasPort ? '' : 'none';
+    $('tcp-host-label').dataset.i18n = conn === 'modbus_tcp' ? 'step2_mbtcp_host_label'
+      : conn === 'rtu_tcp' ? 'step2_gw_host_label' : 'step2_tcp_host_label';
+    applyStaticI18n();
+    $('tcp-host-input').value = modbus.tcp_host || '';
+    $('tcp-serial-input').value = modbus.tcp_serial || '';
+    if (hasPort) {
+      $('tcp-port-input').placeholder = defaultPorts[conn];
+      $('tcp-port-input').value = (modbus.connection === conn && modbus.tcp_port) || defaultPorts[conn];
+    }
+  }
+
+  // Shows the field group for the chosen connection type — the port picker
+  // for RTU when the board has no fixed port (baud rate, parity... come from
+  // the profile chosen in step 1), host/serial, or host/port — and prefills
+  // it from that profile.
+  function updateConnFields(conn) {
+    const isRTU = conn === 'rtu';
+    $('port-row').style.display = isRTU && !fixedUARTPort ? '' : 'none';
+    $('tcp-row').style.display = isNetworkConn(conn) ? '' : 'none';
+    $('step2-hint').dataset.i18n = conn === 'modbus_tcp' ? 'step2_hint_modbus_tcp'
+      : conn === 'rtu_tcp' ? 'step2_hint_rtu_tcp'
+      : conn === 'tcp' ? 'step2_hint_tcp'
+      : (fixedUARTPort ? 'step2_hint_solarmeter' : 'step2_hint_uart');
+    applyStaticI18n();
+    if (isRTU) {
+      if (!fixedUARTPort) loadPorts();
+    } else {
+      fillNetworkFields(conn);
+    }
+  }
+  $('conn-type-select').addEventListener('change', (e) => updateConnFields(e.target.value));
+
+  function loadPorts() {
+    fetch(API.ports)
+      .then((r) => r.json())
+      .then((data) => {
+        const select = $('port-select');
+        select.innerHTML = '';
+        const ports = data.ports || [];
+        if (ports.length === 0) {
+          const opt = document.createElement('option');
+          opt.textContent = t('step2_no_ports');
+          opt.disabled = true;
+          select.appendChild(opt);
+          return;
+        }
+        ports.forEach((port) => {
+          const opt = document.createElement('option');
+          opt.value = port;
+          opt.textContent = port;
+          opt.selected = port === data.current;
+          select.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+  }
+
+  // Saves an updated modbus/uart connection block onto the already-fetched
+  // profile and PATCHes it back — same technique Settings → Advanced uses,
+  // just from the wizard: name/uart/registers not touched here are carried
+  // over untouched.
+  function saveProfilePatch(patch) {
+    const updated = JSON.parse(JSON.stringify(profileDetail));
+    updated.modbus = Object.assign({}, updated.modbus, patch.modbus);
+    if (patch.uart) updated.uart = Object.assign({}, updated.uart, patch.uart);
+    return fetch(API.profiles, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selectedProfileID, profile: updated }),
+    }).then((r) => r.ok ? r : r.json().catch(() => ({})).then((d) => { throw new Error(d.error || ('HTTP ' + r.status)); }));
+  }
+
+  // The port: empty means the default (502, or 8899); otherwise 1-65535. Returns what's
+  // wrong, or '' when it's fine.
+  function tcpPortProblem() {
+    const v = $('tcp-port-input').value.trim();
+    if (!v) return '';
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 1 && n <= 65535 ? '' : t('err_tcp_port_invalid');
+  }
+
+  // The modbus block for a network connection, from the fields.
+  function networkPatch(conn) {
+    if (conn in defaultPorts) {
+      return { modbus: { connection: conn, tcp_host: $('tcp-host-input').value.trim(), tcp_port: Number($('tcp-port-input').value.trim()) || defaultPorts[conn] } };
+    }
+    return { modbus: { connection: 'tcp', tcp_host: $('tcp-host-input').value.trim(), tcp_serial: Number($('tcp-serial-input').value) || 0 } };
+  }
+
+  // A network connection needs a valid address (the Solarman serial number
+  // is optional: the app asks the logger for it): an IPv4/IPv6 address or a host name — same rule as the
+  // server's validHost. Returns what's wrong, or '' when it's fine.
+  function tcpHostProblem() {
+    const host = $('tcp-host-input').value.trim();
+    if (!host) return t('err_tcp_host_required');
+    const ipv4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+    const hostname = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+    const ok = /^[\d.]+$/.test(host) ? ipv4.test(host) : (host.includes(':') || (host.length <= 253 && hostname.test(host)));
+    return ok ? '' : t('err_tcp_host_invalid');
+  }
+
+  $('step2-next').addEventListener('click', () => {
+    const chosen = $('conn-type-select').value;
+    $('wizard-msg').textContent = '';
+    if (isNetworkConn(chosen)) {
+      const problem = tcpHostProblem() || (chosen in defaultPorts ? tcpPortProblem() : '');
+      if (problem) { $('wizard-msg').textContent = problem; return; }
+    }
+    $('step2-next').disabled = true;
+    const fail = (e) => {
+      $('step2-next').disabled = false;
+      $('wizard-msg').textContent = t('err_generic', { msg: e.message });
+    };
+    // Only now (connection confirmed) does SolaStat open the port / connect
+    // to the inverter; steps 1-2 just record the choices.
+    const proceed = () => {
+      fetch(API.connect, { method: 'POST' })
+        .then((r) => r.ok ? null : r.json().then((d) => { throw new Error(d.error || ('HTTP ' + r.status)); }))
+        .then(() => { $('step2-next').disabled = false; goToStep(3); })
+        .catch(fail);
+    };
+
+    if (isNetworkConn(chosen)) {
+      saveProfilePatch(networkPatch(chosen)).then(proceed).catch(fail);
+      return;
+    }
+
+    // RTU: the serial settings stay as the profile has them.
+    const rtuPatch = { modbus: { connection: 'rtu' } };
+    // With a fixed port there is nothing to send; otherwise the picked one.
+    const port = fixedUARTPort ? '' : $('port-select').value;
+    saveProfilePatch(rtuPatch)
+      .then(() => port && fetch(API.ports, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port }),
+      }).then((r) => r.ok ? null : r.json().catch(() => ({})).then((d) => { throw new Error(d.error || ('HTTP ' + r.status)); })))
+      .then(proceed)
+      .catch(fail);
+  });
+
+  // ── Step 3: live test ────────────────────────────────────
+  let testSSE = null;
+  let testTimeout = null;
+
+  function fmtW(v) { return v == null ? '--' : Math.round(v) + 'W'; }
+
+  function startTest() {
+    stopTest();
+    $('test-status').className = 'test-status';
+    $('test-status').innerHTML = '<span class="spinner"></span><span id="test-status-text"></span>';
+    $('test-status-text').textContent = t('step3_waiting');
+    $('step3-next').disabled = true;
+    $('step3-skip').hidden = true; // only offered if the inverter doesn't answer
+    ['tv-solar', 'tv-load', 'tv-battery', 'tv-grid'].forEach((id) => { $(id).textContent = '--'; });
+
+    testSSE = new EventSource(API.events);
+    // Every connection opens with the last snapshot, which proves nothing:
+    // it's empty before the first cycle ends, or from before the cable came
+    // out. Only a cycle read since counts.
+    let snapshot = true;
+    testSSE.onopen = () => { snapshot = true; };
+    testSSE.onmessage = (e) => {
+      if (snapshot) { snapshot = false; return; }
+      let d;
+      try { d = JSON.parse(e.data); } catch { return; }
+      const r = d.readings || {};
+      const get = (n) => (r[n] != null ? r[n].value : null);
+      // keep waiting — a failed poll cycle isn't a successful test, and one
+      // with nothing read isn't either (commHealth.observe)
+      if (d.error || !Object.keys(r).length) return;
+      $('tv-solar').textContent = fmtW(get('pv_total_power'));
+      $('tv-load').textContent = fmtW(get('total_consumption_power'));
+      $('tv-battery').textContent = get('battery_level') != null ? Math.round(get('battery_level')) + '%' : '--';
+      $('tv-grid').textContent = fmtW(get('measured_power'));
+      $('test-status').className = 'test-status ok';
+      $('test-status').innerHTML = `✓ <span id="test-status-text"></span>`;
+      $('test-status-text').textContent = t('step3_success');
+      $('step3-next').disabled = false;
+      $('step3-skip').hidden = true;
+      clearTimeout(testTimeout);
+    };
+    testTimeout = setTimeout(() => {
+      $('test-status').className = 'test-status warn';
+      $('test-status').innerHTML = `⚠ <span id="test-status-text"></span>`;
+      $('test-status-text').textContent = t('step3_timeout');
+      $('step3-skip').hidden = false;
+    }, 20000);
+  }
+
+  function stopTest() {
+    if (testSSE) { testSSE.close(); testSSE = null; }
+    clearTimeout(testTimeout);
+  }
+
+  $('step3-skip').addEventListener('click', () => goToStep(4));
+  $('step3-next').addEventListener('click', () => goToStep(4));
+
+  // ── Step 4: MQTT (optional) ──────────────────────────────
+  function updateMqttFieldsVisibility() {
+    $('mqtt-fields').style.display = $('mqtt-enabled').checked ? '' : 'none';
+  }
+  $('mqtt-enabled').addEventListener('change', updateMqttFieldsVisibility);
+
+  function loadMqttDefaults() {
+    fetch(API.mqtt)
+      .then((r) => r.json())
+      .then((d) => {
+        const cfg = d.config || {};
+        $('mqtt-broker').value = cfg.broker || '';
+        $('mqtt-port').value = cfg.port || 1883;
+        $('mqtt-username').value = cfg.username || '';
+        $('mqtt-client-id').value = cfg.client_id || 'solastat';
+        $('mqtt-device-name').value = cfg.device_name || 'SolaStat';
+        $('mqtt-topic-prefix').value = cfg.topic_prefix || 'solastat';
+        $('mqtt-discovery-prefix').value = cfg.discovery_prefix || 'homeassistant';
+      })
+      .catch(() => {});
+  }
+
+  function finishSetup() {
+    fetch(API.complete, { method: 'POST' })
+      .then(() => { window.location.href = routePrefix + '/'; })
+      .catch(() => { window.location.href = routePrefix + '/'; });
+  }
+
+  $('step4-skip').addEventListener('click', finishSetup);
+  $('step4-finish').addEventListener('click', () => {
+    $('step4-finish').disabled = true;
+    $('wizard-msg').textContent = '';
+    if (!$('mqtt-enabled').checked) { finishSetup(); return; }
+    const cfg = {
+      enabled: true,
+      broker: $('mqtt-broker').value.trim(),
+      port: parseInt($('mqtt-port').value) || 1883,
+      username: $('mqtt-username').value.trim(),
+      password: $('mqtt-password').value,
+      client_id: $('mqtt-client-id').value.trim() || 'solastat',
+      device_name: $('mqtt-device-name').value.trim() || 'SolaStat',
+      topic_prefix: $('mqtt-topic-prefix').value.trim() || 'solastat',
+      discovery_prefix: $('mqtt-discovery-prefix').value.trim() || 'homeassistant',
+    };
+    if (!cfg.broker) {
+      $('wizard-msg').textContent = t('err_generic', { msg: 'broker host required' });
+      $('step4-finish').disabled = false;
+      return;
+    }
+    fetch(API.mqtt, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg),
+    })
+      .then(() => finishSetup())
+      .catch((e) => {
+        $('wizard-msg').textContent = t('err_generic', { msg: e.message });
+        $('step4-finish').disabled = false;
+      });
+  });
+
+  // ── Init ─────────────────────────────────────────────────
+  applyStaticI18n();
+  // Re-run from Settings: the other pages work, so show the full nav bar.
+  fetch(API.config)
+    .then((r) => r.json())
+    .then((cfg) => {
+      if (!cfg || !cfg.setupDone) return;
+      setupDone = true;
+      window.solastatNav.setMinimal(false);
+      $('wizard-progress').classList.add('first-only');
+      $('step0-next').textContent = t('btn_finish');
+      $('step0-next').removeAttribute('data-i18n');
+    })
+    .catch(() => {});
+
+  loadProfiles();
+  loadTimezones();
+  loadDeviceName();
+  loadNetwork();
+  loadMqttDefaults();
+  goToStep(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+{
+  "name": "RENAC ESC3000–5000-DS (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000,
+    "connection": "modbus_tcp",
+    "tcp_port": 502
+  },
+  "registers": [
+    {
+      "name": "run_state",
+      "label": "Run Mode",
+      "address": 10,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 11,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 12,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "address": 22,
+      "function_code": 4,
+      "value_type": "S_DWORD_R",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "address": 50,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 72,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 80,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 70,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "V",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 1,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 4,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 5,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 7,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 6,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 8,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 2,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": -0.1
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 71,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": -0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power"
+      ]
+    }
+  ],
+  "fault_state": {
+    "reading": "run_state",
+    "values": [
+      3,
+      4
+    ]
+  },
+  "faults": [
+    {
+      "group": "Inverter fault",
+      "registers": [
+        64,
+        65,
+        66,
+        67
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault"
+    },
+    {
+      "group": "Manager fault",
+      "registers": [
+        68
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Internet IC fault (DM9000)",
+        "1": "Real-time clock fault",
+        "2": "EEPROM fault",
+        "3": "Internal CAN communication fault",
+        "4": "CT or meter connection missing"
+      }
+    }
+  ]
+}

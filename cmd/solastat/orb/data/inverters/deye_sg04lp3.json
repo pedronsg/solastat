@@ -1,0 +1,325 @@
+{
+  "name": "Deye SUN-SG04LP3-EU (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 672,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 673,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "address": 625,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "address": 653,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 590,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 588,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery SOH",
+      "address": 224,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 587,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_temperature",
+      "label": "Battery Temperature",
+      "address": 586,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "°C",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 598,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 609,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    },
+    {
+      "name": "run_state",
+      "label": "Run State",
+      "address": 500,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 676,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 677,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 678,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 679,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 610,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 599,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 611,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 600,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 612,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 591,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": ["pv1_total_power", "pv2_total_power"]
+    }
+  ],
+  "fault_state": {
+    "reading": "run_state",
+    "values": [3, 4]
+  },
+  "faults": [
+    {
+      "group": "Device alarm",
+      "registers": [
+        553,
+        554
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "1": "Fan failure",
+        "2": "Grid phase failure",
+        "3": "Meter communication failure",
+        "30": "Battery loss",
+        "31": "Parallel communication quality"
+      },
+      "codes": {
+        "1": "W01",
+        "2": "W02"
+      }
+    },
+    {
+      "group": "Device fault",
+      "registers": [
+        555,
+        556,
+        557,
+        558
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "6": "DC/DC Soft Start failure",
+        "9": "Auxiliary power supply failure",
+        "12": "Working mode changed",
+        "17": "AC Over-current failure",
+        "18": "Tz_Integ_Fault failure",
+        "19": "DC Over-current failure",
+        "21": "Emergency stop fault (inverter locked)",
+        "22": "AC current leakage failure",
+        "23": "DC insulation impedance failure",
+        "25": "DC busbar unbalanced",
+        "28": "Parallel communication failure",
+        "34": "No AC grid",
+        "40": "Parallel system stop",
+        "41": "AC line low voltage",
+        "45": "Backup battery fault",
+        "46": "AC over frequency",
+        "47": "AC under frequency",
+        "48": "Backup battery fault",
+        "55": "DC busbar voltage too low",
+        "57": "BMS communication fault",
+        "62": "ARC fault",
+        "63": "Temperature is too high"
+      },
+      "codes": {
+        "6": "F07",
+        "9": "F10",
+        "12": "F13",
+        "17": "F18",
+        "19": "F20",
+        "21": "F22",
+        "22": "F23",
+        "23": "F24",
+        "25": "F26",
+        "28": "F29",
+        "34": "F35",
+        "40": "F41",
+        "41": "F42",
+        "45": "F46",
+        "46": "F47",
+        "47": "F48",
+        "48": "F49",
+        "55": "F56",
+        "57": "F58",
+        "62": "F63",
+        "63": "F64"
+      }
+    },
+    {
+      "group": "Battery alarm",
+      "registers": [
+        220
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "alarm"
+    },
+    {
+      "group": "Battery fault",
+      "registers": [
+        221
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault"
+    }
+  ]
+}

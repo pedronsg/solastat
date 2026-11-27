@@ -1,0 +1,254 @@
+{
+  "name": "Solis Hybrid (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv_total_power",
+      "label": "PV DC Power",
+      "address": 33057,
+      "function_code": 4,
+      "value_type": "U_DWORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Net Power",
+      "address": 33263,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "address": 33147,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 33149,
+      "function_code": 4,
+      "value_type": "S_DWORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 33139,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery SOH",
+      "address": 33140,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 33049,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 33050,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 33051,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 33052,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 33073,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 33076,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 33133,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 33134,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1,
+      "sign_of": "battery_power"
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 33094,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "faults": [
+    {
+      "group": "Grid fault",
+      "registers": [
+        33116
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "No Grid",
+        "1": "Grid OverVoltage",
+        "2": "Grid UnderVoltage",
+        "3": "Grid OverFrequency",
+        "4": "Grid UnderFrequency",
+        "5": "Grid Imbalance",
+        "6": "Grid Frequncy Jitter",
+        "7": "Grid Impedence too Large",
+        "8": "Grid Tracking Fault",
+        "9": "Meter Comm Failure",
+        "10": "Failsafe"
+      }
+    },
+    {
+      "group": "Backup load fault",
+      "registers": [
+        33117
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Bypass OverVoltage Fault",
+        "1": "Bypass Overload Fault"
+      }
+    },
+    {
+      "group": "Battery fault",
+      "registers": [
+        33118
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Battery Not Connected",
+        "1": "Battery OverVoltage Detection",
+        "2": "Battery UnderVoltage Detection"
+      }
+    },
+    {
+      "group": "Device fault 4",
+      "registers": [
+        33119
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "DC OverVoltage",
+        "1": "DC Bus OverVoltage",
+        "2": "DC Bus Uneven Voltage",
+        "3": "DC Bus UnderVoltage",
+        "4": "DC Bus2 Uneven Voltage",
+        "5": "DC A path OverCurrent",
+        "6": "DC B path OverCurrent",
+        "7": "DC Input Disturbance",
+        "8": "Grid OverCurrent",
+        "9": "IGBT OverCurrent",
+        "10": "Grid Disturbance 2",
+        "11": "Arc Self-Test Protection",
+        "12": "Arc Fault Reservation",
+        "13": "Grid Current Sample Abnormality"
+      }
+    },
+    {
+      "group": "Device fault 5",
+      "registers": [
+        33120
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "Grid Disturbance",
+        "1": "DC Component Too Large",
+        "2": "Over Temp Protection",
+        "3": "Relay Detection Protection",
+        "4": "Under Temp Protection",
+        "5": "PV Insulation Fault",
+        "6": "12V UnderVoltage Protection",
+        "7": "Leakage Current Protection",
+        "8": "Leakage Current Self-Test",
+        "9": "DSP Initialization Protect",
+        "10": "DSP B Protection",
+        "11": "Battery Overvoltage H/W Failure",
+        "12": "LLC Hardware OverCurrent",
+        "13": "Network Side Transient OverCurrent",
+        "14": "CAN Communication Failed",
+        "15": "DSP Communication Failed"
+      }
+    }
+  ]
+}

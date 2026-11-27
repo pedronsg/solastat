@@ -1,0 +1,10 @@
+{
+  "language": "go",
+  "appPath": "cmd/solastat",
+  "certsDir": "cmd/certs/grpc",
+  "packagesDir": ".orbit",
+  "orbitsignerPath": "",
+  "name": "solastat",
+  "sdkVersion": "v26.1.0",
+  "sdkDevPackageNaming": false
+}

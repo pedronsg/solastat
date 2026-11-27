@@ -1,0 +1,235 @@
+{
+  "name": "Deye Microinverter (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "run_state",
+      "label": "Run State",
+      "address": 59,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Power 1 Voltage",
+      "address": 109,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Power 1 Current",
+      "address": 110,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Power 1 Voltage",
+      "address": 111,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Power 1 Current",
+      "address": 112,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_v",
+      "label": "PV3 Power 1 Voltage",
+      "address": 113,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_i",
+      "label": "PV3 Power 1 Current",
+      "address": 114,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv4_total_power_p_v",
+      "label": "PV4 Power 1 Voltage",
+      "address": 115,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv4_total_power_p_i",
+      "label": "PV4 Power 1 Current",
+      "address": 116,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "inverter_ac_power",
+      "label": "AC Output Power",
+      "address": 86,
+      "function_code": 3,
+      "value_type": "U_DWORD_R",
+      "unit": "W",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid Voltage",
+      "address": 73,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid Current",
+      "address": 76,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 79,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "unit": "W",
+      "product_of": [
+        "pv1_total_power_p_v",
+        "pv1_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "unit": "W",
+      "product_of": [
+        "pv2_total_power_p_v",
+        "pv2_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv3_total_power",
+      "label": "PV3 Power",
+      "unit": "W",
+      "product_of": [
+        "pv3_total_power_p_v",
+        "pv3_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv4_total_power",
+      "label": "PV4 Power",
+      "unit": "W",
+      "product_of": [
+        "pv4_total_power_p_v",
+        "pv4_total_power_p_i"
+      ]
+    },
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power",
+        "pv3_total_power",
+        "pv4_total_power"
+      ]
+    }
+  ],
+  "fault_state": {
+    "reading": "run_state",
+    "values": [
+      3,
+      4
+    ]
+  },
+  "faults": [
+    {
+      "group": "Device alarm",
+      "registers": [
+        101,
+        102
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "1": "Fan failure",
+        "2": "Grid phase failure",
+        "3": "Meter communication failure",
+        "30": "Battery loss",
+        "31": "Parallel communication quality"
+      }
+    },
+    {
+      "group": "Device fault",
+      "registers": [
+        103,
+        104,
+        105,
+        106
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "DC OverVoltage",
+        "1": "DC Bus OverVoltage",
+        "2": "DC Bus Uneven Voltage",
+        "3": "DC Bus UnderVoltage",
+        "4": "DC Bus2 Uneven Voltage",
+        "5": "DC A path OverCurrent",
+        "6": "DC B path OverCurrent",
+        "7": "DC Input Disturbance",
+        "8": "Grid OverCurrent",
+        "9": "IGBT OverCurrent",
+        "10": "Grid Disturbance 2",
+        "11": "Arc Self-Test Protection",
+        "12": "Arc Fault Reservation",
+        "13": "Grid Current Sample Abnormality"
+      }
+    }
+  ]
+}

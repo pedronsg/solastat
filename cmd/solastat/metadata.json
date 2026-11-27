@@ -1,0 +1,19 @@
+{
+  "package_id": "com.app.solastat",
+  "name": "SolaStat",
+  "version": "1.0.5",
+  "description": "Real-time solar monitoring — www.solastat.com",
+  "entry_point": "solastat",
+  "permissions": [
+    "AppHubService/*",
+    "DeviceConfigService/SetDeviceName",
+    "EthernetService/*",
+    "GpioService/*",
+    "HardwareService/*",
+    "MobileNotificationService/Send",
+    "SystemService/*",
+    "TimeService/*",
+    "UartService/*",
+    "WiFiService/*"
+  ]
+}

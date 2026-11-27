@@ -1,0 +1,360 @@
+{
+  "name": "Megarevo R-3H Hybrid three-phase (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 12594,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 12597,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv3_total_power",
+      "label": "PV3 Power",
+      "address": 12600,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "grid_l1_power",
+      "label": "Grid L1 Power",
+      "address": 12562,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l1_power",
+      "label": "Load L1 Power",
+      "address": 12578,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "grid_l2_power",
+      "label": "Grid L2 Power",
+      "address": 12565,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l2_power",
+      "label": "Load L2 Power",
+      "address": 12582,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "grid_l3_power",
+      "label": "Grid L3 Power",
+      "address": 12568,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l3_power",
+      "label": "Load L3 Power",
+      "address": 12586,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 12618,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 12613,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 12592,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 12593,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 12595,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 12596,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_v",
+      "label": "PV3 Voltage",
+      "address": 12598,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv3_total_power_p_i",
+      "label": "PV3 Current",
+      "address": 12599,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 12560,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 12561,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 12563,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 12564,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 12566,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 12567,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 12608,
+      "function_code": 3,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 12609,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 12569,
+      "function_code": 3,
+      "value_type": "S_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power",
+        "pv3_total_power"
+      ]
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "unit": "W",
+      "sum_of": [
+        "grid_l1_power",
+        "grid_l2_power",
+        "grid_l3_power"
+      ]
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "unit": "W",
+      "sum_of": [
+        "load_l1_power",
+        "load_l2_power",
+        "load_l3_power"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "group": "DSP alarm",
+      "registers": [
+        12544,
+        12545
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "0": "Discharge over current",
+        "1": "Over Load",
+        "2": "Bat Disconnect",
+        "3": "Bat Under Capacity",
+        "4": "Bat Low Capacity",
+        "5": "Bat Over Volt",
+        "6": "Grid Low Volt",
+        "7": "Grid Over Volt",
+        "8": "Grid Low Freq",
+        "9": "Grid Over Freq",
+        "10": "Gfci Over",
+        "11": "ParallelCANFail",
+        "12": "Grid CT Reverse",
+        "13": "BUS Under Volt",
+        "14": "BUS Over Volt",
+        "15": "INV Over Current",
+        "16": "Charge Over Current",
+        "17": "Meter Comm Fail",
+        "18": "INV Under Volt",
+        "19": "INV Over Volt",
+        "20": "INV Freq Abnor",
+        "21": "IGBT Temp High",
+        "22": "BMS sys error",
+        "23": "Bat Over Temp",
+        "24": "Bat Under Temp",
+        "25": "Bat Cell Unball/Relay open circuit(48V)",
+        "26": "Bat Reverse",
+        "27": "BMS Comm Fail",
+        "28": "Bat Fault",
+        "29": "Grid Over Load",
+        "30": "Grid Phase ERR/LN Reverse",
+        "31": "ARC Fault"
+      },
+      "read_from": 12544,
+      "read_count": 5
+    },
+    {
+      "group": "DSP fault",
+      "registers": [
+        12546,
+        12547
+      ],
+      "function_code": 3,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "bus soft fail",
+        "1": "inv soft fail",
+        "2": "bus short",
+        "3": "Inv short",
+        "4": "FAN Fault",
+        "5": "pviso low",
+        "6": "BUS relay fault",
+        "7": "Grid relay fault",
+        "8": "EPS relay fault",
+        "9": "Gfic fault",
+        "10": "Inner sensor fault",
+        "11": "PV short",
+        "12": "Byp relay fault",
+        "13": "System fault",
+        "14": "Current DcOver",
+        "15": "Voltage DcOver",
+        "16": "MCU self-test Failed"
+      },
+      "read_from": 12544,
+      "read_count": 5
+    }
+  ]
+}

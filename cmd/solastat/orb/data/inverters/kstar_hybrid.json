@@ -1,0 +1,426 @@
+{
+  "name": "KSTAR Hybrid (beta)",
+  "uart": {
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1
+  },
+  "modbus": {
+    "slave_address": 1,
+    "poll_interval_ms": 5000
+  },
+  "registers": [
+    {
+      "name": "run_state",
+      "label": "Run State",
+      "address": 3046,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "",
+      "multiplier": 1
+    },
+    {
+      "name": "pv1_total_power",
+      "label": "PV1 Power",
+      "address": 3024,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "pv2_total_power",
+      "label": "PV2 Power",
+      "address": 3025,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "grid_l1_power",
+      "label": "Grid L1 Power",
+      "address": 3100,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "grid_l2_power",
+      "label": "Grid L2 Power",
+      "address": 3104,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "grid_l3_power",
+      "label": "Grid L3 Power",
+      "address": 3108,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": -1
+    },
+    {
+      "name": "load_l1_power",
+      "label": "Load L1 Power",
+      "address": 3144,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l2_power",
+      "label": "Load L2 Power",
+      "address": 3145,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "load_l3_power",
+      "label": "Load L3 Power",
+      "address": 3146,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_power",
+      "label": "Battery Power",
+      "address": 3065,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "W",
+      "multiplier": 1
+    },
+    {
+      "name": "battery_level",
+      "label": "Battery SOC",
+      "address": 3066,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 0.1
+    },
+    {
+      "name": "battery_health",
+      "label": "Battery SOH",
+      "address": 3075,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "%",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_v",
+      "label": "PV1 Voltage",
+      "address": 3000,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv1_total_power_p_i",
+      "label": "PV1 Current",
+      "address": 3012,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "pv2_total_power_p_v",
+      "label": "PV2 Voltage",
+      "address": 3001,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "pv2_total_power_p_i",
+      "label": "PV2 Current",
+      "address": 3013,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.01
+    },
+    {
+      "name": "grid_voltage",
+      "label": "Grid L1 Voltage",
+      "address": 3097,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current",
+      "label": "Grid L1 Current",
+      "address": 3099,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": -0.001
+    },
+    {
+      "name": "grid_voltage_l2",
+      "label": "Grid L2 Voltage",
+      "address": 3101,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l2",
+      "label": "Grid L2 Current",
+      "address": 3103,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": -0.001
+    },
+    {
+      "name": "grid_voltage_l3",
+      "label": "Grid L3 Voltage",
+      "address": 3105,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_current_l3",
+      "label": "Grid L3 Current",
+      "address": 3107,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": -0.001
+    },
+    {
+      "name": "battery_voltage",
+      "label": "Battery Voltage",
+      "address": 3063,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "V",
+      "multiplier": 0.01
+    },
+    {
+      "name": "battery_current",
+      "label": "Battery Current",
+      "address": 3064,
+      "function_code": 4,
+      "value_type": "S_WORD",
+      "unit": "A",
+      "multiplier": 0.1
+    },
+    {
+      "name": "grid_frequency",
+      "label": "Grid Frequency",
+      "address": 3098,
+      "function_code": 4,
+      "value_type": "U_WORD",
+      "unit": "Hz",
+      "multiplier": 0.01
+    }
+  ],
+  "derived": [
+    {
+      "name": "pv_total_power",
+      "label": "PV Total Power",
+      "unit": "W",
+      "sum_of": [
+        "pv1_total_power",
+        "pv2_total_power"
+      ]
+    },
+    {
+      "name": "measured_power",
+      "label": "Grid Power",
+      "unit": "W",
+      "sum_of": [
+        "grid_l1_power",
+        "grid_l2_power",
+        "grid_l3_power"
+      ]
+    },
+    {
+      "name": "total_consumption_power",
+      "label": "Load Power",
+      "unit": "W",
+      "sum_of": [
+        "load_l1_power",
+        "load_l2_power",
+        "load_l3_power"
+      ]
+    }
+  ],
+  "fault_state": {
+    "reading": "run_state",
+    "values": [
+      7
+    ]
+  },
+  "faults": [
+    {
+      "group": "DSP alarm",
+      "registers": [
+        3050,
+        3049
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "alarm",
+      "names": {
+        "0": "Grid Volt Low",
+        "1": "Grid Volt High",
+        "2": "Grid Frequency Low",
+        "3": "Grid Frequency High",
+        "4": "Solar Loss",
+        "5": "Bat Loss",
+        "6": "Bat Under Volt",
+        "7": "Bat Volt Low",
+        "8": "Bat Volt High",
+        "9": "Over Load",
+        "10": "GFCI Over",
+        "11": "LN Fault",
+        "12": "Fan Fault",
+        "13": "Bat CapUnder",
+        "14": "Bms DisChg Over",
+        "15": "Bms Chg Over",
+        "16": "Bms Volt Over",
+        "17": "Bms Temp Over",
+        "18": "Bms Dis Temp Low",
+        "19": "Bms Volt Imbalance",
+        "20": "Bms Communicate Fault",
+        "21": "Bms Volt Under",
+        "22": "Bms Chg Temp Low",
+        "23": "Bms_VoltHigh",
+        "24": "Bms_TempHigh",
+        "25": "Bms_Updating",
+        "26": "Bms_VersionErr",
+        "27": "Bms_UpdateFail",
+        "28": "CT Converse",
+        "29": "Clock Fail",
+        "30": "PV oﬀ",
+        "31": "System Reset"
+      },
+      "codes": {
+        "0": "W00",
+        "1": "W01",
+        "2": "W02",
+        "3": "W03",
+        "4": "W04",
+        "5": "W05",
+        "6": "W06",
+        "7": "W07",
+        "8": "W08",
+        "9": "W09",
+        "10": "W10",
+        "11": "W11",
+        "12": "W12",
+        "13": "W13",
+        "14": "W14",
+        "15": "W15",
+        "16": "W16",
+        "17": "W17",
+        "18": "W18",
+        "19": "W19",
+        "20": "W20",
+        "21": "W21",
+        "22": "W22",
+        "23": "W23",
+        "24": "W24",
+        "25": "W25",
+        "26": "W26",
+        "27": "W27",
+        "28": "W28",
+        "29": "W29",
+        "30": "W30",
+        "31": "W31"
+      }
+    },
+    {
+      "group": "DSP error",
+      "registers": [
+        3052,
+        3051
+      ],
+      "function_code": 4,
+      "kind": "bits",
+      "severity": "fault",
+      "names": {
+        "0": "So Time Out",
+        "1": "INV Volt Short",
+        "2": "GFCI Sensor Fault",
+        "4": "Bus Low Fault",
+        "5": "Bus High Fault",
+        "6": "Bus Short Fault",
+        "7": "PV ISO Under Fault",
+        "8": "PV Input Short",
+        "9": "Op Relay Fault",
+        "10": "INV Curr Over",
+        "11": "INV DC Over",
+        "12": "Ambient Over Temp",
+        "13": "Sink Over Temp",
+        "14": "Grid Relay Fault",
+        "15": "DisChg Curr Over",
+        "16": "Chg Curr Over",
+        "17": "Current Sensor Fault",
+        "18": "INV Abnormal",
+        "19": "EPS Relay Fault",
+        "20": "Always over load",
+        "21": "SPI Fault Between DSP",
+        "22": "Parallel Communicate Fault",
+        "23": "Parallel Grid Abnormal",
+        "24": "BackUp Air Switch Abnormal",
+        "25": "Parallel Power Imbalance",
+        "31": "SCI Fault",
+        "26": "Parallel Inverter Grid Phase Sequence Abnormal"
+      },
+      "codes": {
+        "0": "F00",
+        "1": "F01",
+        "2": "F02",
+        "3": "F03",
+        "4": "F04",
+        "5": "F05",
+        "6": "F06",
+        "7": "F07",
+        "8": "F08",
+        "9": "F09",
+        "10": "F10",
+        "11": "F11",
+        "12": "F12",
+        "13": "F13",
+        "14": "F14",
+        "15": "F15",
+        "16": "F16",
+        "17": "F17",
+        "18": "F18",
+        "19": "F19",
+        "20": "F20",
+        "21": "F21",
+        "22": "F22",
+        "23": "F23",
+        "24": "F24",
+        "25": "F25",
+        "31": "F31",
+        "26": "F26"
+      }
+    }
+  ]
+}
